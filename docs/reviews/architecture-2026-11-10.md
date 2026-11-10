@@ -416,3 +416,25 @@ Fixing the ruff error belongs to the same change.
 
 Candidate 3 comes next. It is the best live-review talking point ("where is the security
 guarantee enforced?"), and the free-text gap is a real, if small, risk.
+
+---
+
+## Status at commit `532207b` (later the same day)
+
+Checked against the committed code and the first paid run
+(`evals/results/20261110T080559Z_llm.json`, MiMo-flash, 126 reviews).
+
+| Candidate | Status | Evidence |
+|---|---|---|
+| 1 LLM outcomes as text | **Open**, did not distort the MiMo run | `llm_fallback` was false in all 126 records. In the evals the only price warning is "Billing API not used: No GCP_BILLING_API_KEY configured.", which matches none of the markers. A rate above 0 in later runs must be checked by hand until this is fixed. |
+| 2 Usage and cost in three places | **Open**, README numbers unaffected | Every review uses one model, so report tokens × that model's live price is the right cost. The UI still prices with the bundled snapshot, so the UI and README can differ for the same review. |
+| 3 Security guarantee has no single home | Open | Unchanged. |
+| 4 Price provenance in loose fields | Open | `prices_static.json` now holds exact Compute and disk prices for 8 regions copied from the live API, which adds a sixth thing to know about where a price came from. |
+| 5 Raw attribute dicts | Open (speculative) | Unchanged. |
+| 6 Region resolution split | **Open, reproduced** | A VM in zone `me-west1-a` still gives `regions_used: ['me-west1']` next to the note "us-central1 prices were used". The ruff error mentioned above was fixed before the commit. |
+| 7 Two renderers drift | Open | The UI still shows no region. |
+
+The top recommendation still stands, with one change in timing: the MiMo run and the
+three-model comparison were started before candidates 1 and 2 were done. Their numbers
+remain valid for the reasons in the table, so the runs do not need to be paid for again.
+Candidate 6 is the smallest and the only one that puts a wrong statement in a report.

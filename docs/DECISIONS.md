@@ -149,3 +149,31 @@ process restarts.
 
 **Why.** It is the current SDK. `FastMCP`, named in the original project notes, was
 renamed to `MCPServer` in version 2. The decorator API is the same.
+
+## 14. Three low-cost models, judged by a fourth vendor
+
+**Decision.** The model comparison uses `xiaomi/mimo-v2.6-flash`,
+`deepseek/deepseek-v4-flash` and `google/gemini-3.5-flash-lite`, judged by
+`openai/gpt-5-mini`. The ablations were run once, on MiMo-flash only.
+
+**Why.** The project owner chose these models and a $5 budget for all runs. Three
+vendors give the comparison some spread. A judge from a fourth vendor means no model
+is scored by a relative. The full set of runs cost under $1.
+
+**Given up.** No premium model, so the results cannot say what paying more buys. The
+ablation run used `xiaomi/mimo-v2.6-pro` as judge (a relative of the judged model)
+because it ran before the judge was chosen; it was not repeated, to save cost.
+
+## 15. Exact regional prices in the static table
+
+**Decision.** `tools/prices_static.json` stores exact Compute Engine and disk prices
+for its 8 regions, copied from the live Billing Catalog API on 2026-11-10. Other
+services keep a us-central1 price times a region multiplier.
+
+**Why.** A check against the live API showed the hand-typed us-central1 prices were
+right, but the 1.1 Europe multiplier overpriced disks by 10%: Google charges the same
+disk price in us-central1 and europe-west1. Exact values remove that error for the
+resources the API covers, while the evals still use a fixed table.
+
+**Given up.** The snapshot does not update itself. It has to be refreshed by hand,
+and the expected costs in `evals/dataset/` recalculated.

@@ -202,6 +202,29 @@ it is listed as future work.
 sample is run several times. The judge is itself a model and can be wrong. Token
 prices change, so each result file records the prices it used.
 
+**First real runs (2026-11-10).** Three cheap models were compared, and RAG and the
+rewrite loop were ablated on one of them. What came out, in plain words:
+- *The security numbers are the same for every model*, because no model touches them.
+  This is the strongest evidence that the "LLM cannot override security" design works.
+- *Models differ in how much advice they give and how fast they are.* Gemini was ten
+  times faster than MiMo but wrote a quarter of the recommendations.
+- *A saturated metric tells you nothing.* Faithfulness was 0.99 to 1.00 for all three
+  models, so it cannot rank them. A metric is only useful if it can tell options apart.
+- *RAG is what makes recommendations citable*: without it, the same number of
+  recommendations, none with a source.
+- *A part that never runs cannot be measured.* The rewrite loop ran in 0 to 7% of
+  reviews, because the document store was written for these exact samples. Proving it
+  helps needs harder queries.
+- *Noise is bigger than you expect.* Running the same configuration twice moved some
+  numbers by 10%. Only differences much bigger than that mean anything.
+- *Timeouts per attempt are not a deadline.* One review waited 628 seconds, because a
+  60-second timeout was retried several times.
+
+**Checking prices against the real API paid off.** It found the static table charged
+10% too much for disks in Europe. The fix stores exact prices, and the expected costs
+in the dataset were recalculated by hand, not copied from the code, so the test can
+still disagree with the code.
+
 ---
 
 ## Things a reviewer is likely to ask
@@ -227,3 +250,8 @@ code, so the freedom is bounded.
 
 **"What would you do with more time?"** A held-out dataset, real variable resolution,
 more rules, and live prices for every service.
+
+**"Which model would you use?"** For the UI and the MCP tool, Gemini 3.5 Flash Lite:
+about 3 seconds per review against 12 and 29 for the others, every recommendation
+cited, and still a fraction of a cent. The security result does not depend on the
+choice.

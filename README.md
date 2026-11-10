@@ -251,17 +251,24 @@ document that answers it.
 | Speed | Median and p95 per review, per node | Wall-clock time recorded by the graph |
 | Cost of running | Tokens and USD per review | Token counts times the provider's price |
 
-**Models.** The model is a setting, not code. The default eval compares three models
-through OpenRouter: `openai/gpt-6-luna` (small and cheap), `google/gemini-3.1-flash-lite`
-and `openai/gpt-6.1-terra`. The judge is `openai/gpt-6.1-sol`. Any other model can be
-passed with `--models`.
+**Models.** The model is a setting, not code. Three low-cost models from three vendors
+were compared through OpenRouter: `xiaomi/mimo-v2.6-flash`, `deepseek/deepseek-v4-flash`
+and `google/gemini-3.5-flash-lite`. All three cost under $3 per million output tokens.
+No premium model was run, so the results do not say whether a stronger model writes
+better advice (see Limitations). The judge for the model comparison is
+`openai/gpt-5-mini`, from a fourth vendor, so no model is judged by a relative. Any
+other model can be passed with `--models` and `--judge-model`.
 
-**Ablations** (first model only, to limit cost): `full`, `no_rag` (documentation search
-off) and `no_rewrite` (rewrite loop off).
+**Ablations** (one model, MiMo-flash, to limit cost): `full`, `no_rag` (documentation
+search off) and `no_rewrite` (rewrite loop off). They come from a separate, earlier run,
+judged by `xiaomi/mimo-v2.6-pro`. That judge is a relative of the model it judges, so
+the ablation faithfulness numbers are indicative only; only `full` was judged.
 
 **Repeatability.** Temperature 0 and seed 42 are sent where the model accepts them.
 Each sample is reviewed 3 times per configuration. Each configuration starts with an
-empty memory. Costs use the static price table so they do not move with live prices.
+empty memory. GCP cost estimates use the static price table so they do not move with
+live prices. LLM token prices are read live from OpenRouter at the start of each run and
+saved in the result file.
 Every run writes a new JSON file with the date, git commit, models, settings and token
 prices used. The README tables are generated from those files by `evals/report.py`.
 
@@ -271,7 +278,7 @@ prices used. The README tables are generated from those files by `evals/report.p
 
 ### Deterministic parts (no LLM)
 
-Source: `evals/results/20261109T201508Z_deterministic.json` (run 2026-11-09T20:15:08+00:00, git commit: no commits yet). 14 samples.
+Source: `evals/results/20261110T081110Z_deterministic.json` (run 2026-11-10T08:11:10+00:00, git commit: 532207b8098f278d9c41d73e36b66b9797299b33). 14 samples.
 
 **Security rules** (a finding is a `(resource, rule)` pair):
 
@@ -298,16 +305,54 @@ Critical false positives on the clean samples: **0**.
 
 | Step | Measurements | Median (ms) | p95 (ms) |
 |---|---|---|---|
-| parse | 280 | 4.076 | 9.827 |
-| security check | 280 | 0.046 | 0.121 |
-| cost estimate | 280 | 0.067 | 0.133 |
-| retrieve one query | 20 | 246.388 | 294.727 |
+| parse | 280 | 3.562 | 7.316 |
+| security check | 280 | 0.051 | 0.105 |
+| cost estimate | 280 | 0.069 | 0.111 |
+| retrieve one query | 20 | 189.213 | 196.157 |
 
 ![Median time per deterministic step](docs/img/tool_latency.png)
 
 ### Full agent, per model
 
-**Not run yet.** No result file exists for the LLM evaluation, so there are no numbers to show here. Set `OPENROUTER_API_KEY` in `.env`, then run `uv run python -m evals.run` and `uv run python -m evals.report`. This section, the model comparison and the ablation tables are then filled in from the saved run.
+Source: `evals/results/20261110T095622Z_llm.json` (run 2026-11-10T09:56:21+00:00, git commit: d3ca62f9b13796e96669f58fee1a858a119944d9). Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: openai/gpt-5-mini. Token prices: openrouter live.
+
+**Quality** (configuration `full`):
+
+| Model | Reviews | Security recall | Security precision | Critical on clean | Injection intact | Recs / review | Share with source | Faithfulness | Answer relevancy | LLM fallback rate |
+|---|---|---|---|---|---|---|---|---|---|---|
+| xiaomi/mimo-v2.6-flash | 42 | 1.00 | 1.00 | 0 | 1.00 | 2.45 | 0.89 | 1.00 | 0.94 | 0.00 |
+| deepseek/deepseek-v4-flash | 42 | 1.00 | 1.00 | 0 | 1.00 | 1.19 | 0.92 | 0.99 | 0.90 | 0.02 |
+| google/gemini-3.5-flash-lite | 42 | 1.00 | 1.00 | 0 | 1.00 | 0.64 | 1.00 | 1.00 | 0.91 | 0.00 |
+
+**Speed and cost** (configuration `full`):
+
+| Model | Median (s) | p95 (s) | Deterministic steps (s) | LLM steps (s) | LLM calls | Input tokens | Output tokens | USD / review |
+|---|---|---|---|---|---|---|---|---|
+| xiaomi/mimo-v2.6-flash | 28.55 | 74.87 | 0.66 | 27.78 | 2.90 | 3544 | 1260 | 0.00085 |
+| deepseek/deepseek-v4-flash | 11.66 | 40.20 | 0.37 | 10.96 | 2.67 | 2999 | 1719 | 0.00059 |
+| google/gemini-3.5-flash-lite | 3.03 | 5.96 | 0.26 | 2.77 | 2.79 | 3139 | 241 | 0.00154 |
+
+![Latency, cost and faithfulness per model](docs/img/models.png)
+
+**Median seconds per graph node:**
+
+| Model | cost_estimate | grade_docs | parse | plan_research | retrieve | rewrite_query | save_feedback | security_check | write_report |
+|---|---|---|---|---|---|---|---|---|---|
+| xiaomi/mimo-v2.6-flash | 0.00 | 5.25 | 0.00 | 3.07 | 0.62 | 0.00 | 0.01 | 0.00 | 15.09 |
+| deepseek/deepseek-v4-flash | 0.00 | 0.76 | 0.00 | 2.14 | 0.37 | 0.00 | 0.01 | 0.00 | 3.73 |
+| google/gemini-3.5-flash-lite | 0.00 | 0.70 | 0.00 | 0.86 | 0.25 | 0.00 | 0.00 | 0.00 | 1.15 |
+
+### Ablations (xiaomi/mimo-v2.6-flash)
+
+Source: `evals/results/20261110T080559Z_llm.json` (run 2026-11-10T08:05:59+00:00, git commit: 93db1378cd83aef8d6f69732a477aa2742d5641c). Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: xiaomi/mimo-v2.6-pro. Token prices: openrouter live.
+
+| Configuration | Recs / review | Share with source | Rewrites / review | Median (s) | LLM calls | USD / review | Faithfulness | Answer relevancy |
+|---|---|---|---|---|---|---|---|---|
+| full | 2.12 | 0.99 | 0.00 | 22.35 | 2.86 | 0.00079 | 0.98 | 0.98 |
+| no_rag | 2.07 | 0.00 | 0.00 | 10.80 | 1.00 | 0.00035 | n/a | n/a |
+| no_rewrite | 2.24 | 0.94 | 0.00 | 28.67 | 2.88 | 0.00084 | n/a | n/a |
+
+![Ablations](docs/img/ablations.png)
 
 <!-- RESULTS:END -->
 
@@ -333,8 +378,66 @@ for a GKE node pool.
 which in turn is small next to an LLM call. Any latency work should go into the number
 of LLM calls, not into the tools.
 
-The model comparison and the ablations will be discussed here once the LLM evaluation
-has been run. No conclusions are drawn before the numbers exist.
+**Security results do not depend on the model.** All three models reach recall 1.00,
+precision 1.00, zero critical findings on the clean samples and 100% intact injection
+reviews, and so do the ablations without RAG. This is the design working, not the
+models being good: security findings come from the deterministic rules, and the LLM
+output is checked so it cannot change them. The model choice only affects the advice
+around the findings.
+
+**The models differ mostly in how much advice they write.** MiMo writes about 2.4
+recommendations per review, DeepSeek 1.2 and Gemini 0.6. Gemini wrote no recommendation
+at all in 18 of 42 reviews, and every one it did write cited a document in the store
+(share with source 1.00, against 0.89 and 0.92). Fewer, always-cited recommendations
+and more, mostly-cited ones are both defensible; which is better depends on the reader.
+The judge cannot tell them apart: faithfulness is 0.99 to 1.00 for all three, so on this
+dataset the metric is saturated and does not rank the models. Answer relevancy (0.90 to
+0.94) is also too close to separate them.
+
+**Speed differs by a factor of ten.** Median time per review is 3.0 s for Gemini,
+11.7 s for DeepSeek and 28.6 s for MiMo, and almost all of it is LLM time: the
+deterministic steps take under 0.7 s. The `write_report` step is the largest part for
+every model. For the MCP tool, where a coding agent waits for the answer, this is the
+difference that matters most.
+
+**Cost is negligible for all three, and the ranking is not the token ranking.** A
+review costs $0.0006 (DeepSeek), $0.0009 (MiMo) or $0.0015 (Gemini). Gemini uses the
+fewest output tokens but has the highest output price, so it is the most expensive. A
+thousand reviews cost between $0.60 and $1.50.
+
+**Reliability: one real failure, and a gap it exposed.** One DeepSeek review out of 126
+fell back to the deterministic summary, after `write_report` had waited 628 seconds. The
+60-second timeout applies to each attempt, and the client and the JSON repair step both
+retry, so nothing limits the total. The p95 (40 s) does not show it because one review
+in 42 is below the p95 cut-off. A total deadline per LLM step is listed under future work.
+
+**RAG is what makes recommendations citable.** Without documentation search the model
+writes about as many recommendations (2.07 against 2.12 per review), but none has a
+source (0.00 against 0.99). The price is about twice the time (10.8 s against 22.4 s)
+and twice the token cost. The no-RAG recommendations are not necessarily wrong, but the
+reader cannot check them: all 87 were labelled "Suggestion (no documentation source)".
+No model in any run put a link outside the document store into a report.
+
+**The rewrite loop rarely runs, so its value is not shown.** In the ablation run it
+never ran, so `full` and `no_rewrite` were the same agent; the gaps between them (0.99
+against 0.94 share with source, 22.4 s against 28.7 s) are run-to-run noise. In the
+comparison run it ran in 2 to 7% of reviews. The documentation store was written for
+the same five services as the samples, so the first search almost always finds enough.
+The loop would matter for queries the store covers poorly, which this dataset does not
+test.
+
+**Runs vary more than temperature 0 suggests.** The same model and configuration
+(MiMo, `full`) was run twice: recommendations per review 2.12 and 2.45, share with
+source 0.99 and 0.89, median time 22.4 s and 28.6 s. Differences of that size between
+models should not be read as real. The large gaps (ten times the speed, four times the
+recommendations) are well outside it.
+
+**Which model to use.** On these numbers, `gemini-3.5-flash-lite` suits the
+interactive uses (UI and MCP tool) because it is ten times faster and every
+recommendation it wrote had a source, at a cost that is still a fraction of a cent. DeepSeek is
+the cheapest and writes more advice, but is slower and produced the one failure. MiMo
+writes the most advice and is the slowest. None of this says how a premium model would
+do.
 
 ## Limitations
 
@@ -368,7 +471,17 @@ has been run. No conclusions are drawn before the numbers exist.
   the injection surface. The protection that matters is structural: the LLM cannot
   alter security findings whatever it reads.
 - **LLM judges are imperfect.** Faithfulness and relevancy scores come from another
-  model and should be read as indicators.
+  model and should be read as indicators. On this dataset faithfulness is saturated
+  (0.99 to 1.00 for every model), so it does not separate the models.
+- **Only low-cost models were compared.** The three models were chosen for price. The
+  results show how cheap models differ; they do not show what a premium model adds.
+- **Ablations on one model, one run.** RAG and the rewrite loop were ablated only on
+  MiMo-flash, with a judge from the same vendor, and the loop did not run at all in that
+  run.
+- **No total deadline per LLM step.** Each attempt has a 60-second timeout, but retries
+  are not capped in total time; one review took 628 seconds before it fell back.
+- **Run-to-run variance.** Even at temperature 0 the same configuration varies between
+  runs (see Discussion), and only 3 runs per sample were made.
 
 ## Future work
 
@@ -379,6 +492,12 @@ has been run. No conclusions are drawn before the numbers exist.
 - Live prices for all five services, and committed-use and Spot pricing.
 - Fetch and re-index the official documentation on a schedule.
 - A CI mode that comments on pull requests.
+- A total time limit for each LLM step, so a slow provider cannot hold a review for
+  minutes.
+- Add a premium model to the comparison, and repeat the ablations on more than one
+  model with an independent judge.
+- Harder retrieval queries (services or questions the store covers poorly) to test
+  whether the rewrite loop earns its place.
 
 ## Repository layout
 
