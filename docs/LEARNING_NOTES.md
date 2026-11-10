@@ -225,6 +225,86 @@ rewrite loop were ablated on one of them. What came out, in plain words:
 in the dataset were recalculated by hand, not copied from the code, so the test can
 still disagree with the code.
 
+## Core concepts, explained with this project
+
+### Function calling, and where it is in this project
+
+**What function calling is.** The application gives the model a list of tools. Each
+tool has a name, a description and a JSON Schema for its arguments. The model does not
+run anything. It replies "call `get_weather` with `{"city": "Vilnius"}`". The
+application checks the arguments, runs the function and sends the result back. The
+model then answers or asks for another call. This loop is how a ReAct agent works.
+
+**Where this project uses it: as the tool.** `mcp_server/server.py` exposes one
+function, `review_gcp_infra(terraform: str, project_id: str = "default")`. The MCP SDK
+turns its type hints and docstring into a tool schema. When Claude Code writes
+Terraform, *its* model reads that schema, decides to call the tool, and fills in the
+arguments. That is function calling, with this project on the receiving end. The
+docstring is the tool's description, so it is written for a model: what the tool does,
+what it returns and the 200 KB limit.
+
+**Inside the agent: the same idea, with the graph in control.** The LLM still chooses
+the arguments of a tool call, but it does not choose which tool runs or when:
+
+| Step | The LLM chooses | Code runs |
+|---|---|---|
+| `plan_research` | search queries: `{"queries": [{"service": "cloud_sql", "query": "..."}]}` | `retrieve` calls `search_gcp_docs(query, service)` with them |
+| `grade_docs` | which passages are relevant | the graph counts them and decides whether to loop |
+| `rewrite_query` | better queries | `retrieve` runs again, at most 2 times |
+| `write_report` | recommendations, each with a `source_url` | code checks every URL against the store |
+
+The reply is validated against a Pydantic schema (`agent/llm.py`), which plays the
+role of the tool's argument schema. Decision 4 explains why this is JSON mode and not
+provider tool calling: it works the same across vendors on OpenRouter, it works with
+the fake model in tests, and the schema is a guard (the report schema has no
+"security" category, so the LLM cannot create or change a security finding).
+
+**Tools that never go through the LLM.** `parse_terraform`, `check_security` and
+`estimate_cost` are called directly by their nodes. A model choosing whether to run the
+security check could skip it; fixed code cannot.
+
+### Types of agents, and which one this is
+
+| Type | How it works | Good for | Risk |
+|---|---|---|---|
+| Single LLM call (prompt engineering) | One prompt, one answer | Rewriting, summarising, classifying | No tools, no fresh facts |
+| Chain or pipeline | Fixed steps, some of them LLM calls | Repeatable processes | Cannot adapt to the input |
+| ReAct (reason + act) | The LLM loops: think, call a tool, read the result, repeat until done | Open tasks where the steps are unknown | Unpredictable path, cost and time; easy to talk into skipping a step |
+| Plan-and-execute | One LLM call writes a plan, then the steps run | Long tasks with clear sub-steps | A bad plan is followed to the end |
+| Router | An LLM picks one of several fixed paths | Mixed input types | Wrong route, wrong answer |
+| Multi-agent | Several agents with roles hand work to each other | Large tasks needing different skills | Hard to debug and to evaluate |
+
+**This project is a workflow agent: a fixed graph with bounded agentic steps.** It
+mixes a pipeline (parse, security, cost always run, in order), plan-and-execute
+(`plan_research` writes the queries, `retrieve` runs them), and a small self-correcting
+loop (`grade_docs` judges the results, `rewrite_query` tries again, at most twice). That
+loop is the "corrective RAG" pattern.
+
+**Why not ReAct.** A review must always include the security check, cost the same order
+of money each time, and finish in a known time. In a ReAct loop the model decides
+whether to call each tool, so text hidden in the Terraform could persuade it to skip
+the security tools, and the number of calls is open-ended. Here the order is fixed in
+code and the model only fills in the parts that need judgement. The cost: the agent
+cannot invent a new kind of step, for example looking at a service it has no tool for.
+
+### When to use prompt engineering, RAG or an agent
+
+- **Prompt engineering** is enough when the model already knows what it needs, and the
+  task is about the shape of the answer: format, tone, structure. Here every prompt in
+  `agent/prompts/` uses it: a fixed role, the data wrapped in `<review_data>` tags and
+  marked as untrusted, an exact JSON shape, and rules such as "only cite a URL from the
+  passages given".
+- **RAG** is needed when the answer must rest on facts the model may not know, may have
+  wrong, or must cite: here, Google's current recommendations and their URLs. The
+  ablation shows the effect: without RAG the model writes as many recommendations, but
+  none can be traced to a source.
+- **An agent** (a loop with decisions) is worth its cost when the steps depend on what
+  is found. Here the model decides what to search for, based on what this file
+  contains, and whether the results are good enough. A fixed query list would search
+  for Cloud SQL tips on a file with no database.
+- **Plain code** beats all three when the answer must be exact and repeatable:
+  security rules and cost arithmetic. The model is used only where judgement is needed.
+
 ---
 
 ## Things a reviewer is likely to ask

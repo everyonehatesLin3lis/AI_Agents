@@ -30,16 +30,17 @@ Last updated: 2026-11-10
 - Architecture review: `docs/reviews/architecture-2026-11-10.md`, with a status update.
 - Architecture candidate 6 done: `PriceTable.effective_region` is the one place that
   decides which region's prices are used, and `regions_used` reports that region.
+- Default model is now `google/gemini-3.5-flash-lite`, chosen from the comparison.
+- README: common use cases with a real saved review (`docs/examples/`), and a short
+  "what kind of agent" paragraph. Learning notes: function calling, agent types, and
+  when to use prompt engineering, RAG or an agent.
 
 ## What is left (optional)
 
 1. **Architecture candidates 1 and 2:** LLM fallbacks as structured data instead of
    warning text; one place that calculates review cost.
 2. **A total deadline per LLM step.** One review waited 628 s (see README, Discussion).
-3. **The app default model** (`agent/config.py`, `openai/gpt-6-luna`) was not part of
-   the evaluation. The evaluation favours `google/gemini-3.5-flash-lite` for the UI and
-   MCP tool.
-4. A premium model in the comparison, and ablations on a second model.
+3. A premium model in the comparison, and ablations on a second model.
 
 ## Verification at the time of writing
 

@@ -80,6 +80,17 @@ Blue nodes are plain code. Orange nodes use the LLM.
 | `human_review` | no | Pauses for the user's feedback (UI only) | |
 | `save_feedback` | no | Saves feedback and the review to SQLite | A warning; the report is still returned |
 
+**What kind of agent this is.** A workflow agent: a fixed graph in which the LLM makes
+bounded decisions (what to search for, which passages are good enough, whether to
+search again) but never decides whether the security check or the cost estimate runs.
+It is not a ReAct agent, on purpose: in a ReAct loop the model chooses which tools to
+call, and text hidden in the Terraform could talk it out of the security check.
+**Function calling** happens at the edge: `review_gcp_infra` is a tool that coding
+agents call. Inside the graph, the LLM's JSON output (search queries) becomes the
+arguments of `search_gcp_docs`, validated by a Pydantic schema. The longer explanation,
+with a comparison of agent types and when to use prompt engineering, RAG or an agent,
+is in [`docs/LEARNING_NOTES.md`](docs/LEARNING_NOTES.md#core-concepts-explained-with-this-project).
+
 ### Design rules
 
 **The LLM is used only where judgment is needed.** Whether a bucket is public is a
@@ -161,6 +172,11 @@ GCP_BILLING_API_KEY=      # optional: live Compute Engine prices
 Without an LLM key the agent still runs in rule-only mode. Without a billing key it
 uses `tools/prices_static.json` and adds "prices may be outdated" to the report.
 
+The default model is `google/gemini-3.5-flash-lite` through OpenRouter, chosen from the
+model comparison below. If you use `OPENAI_API_KEY` without OpenRouter, also set
+`REVIEW_MODEL` to an OpenAI model (for example `REVIEW_MODEL=gpt-5-mini`), or pick one
+in the Developer section of the UI.
+
 ## Usage
 
 ### Streamlit UI
@@ -213,6 +229,58 @@ print(report.headline)
 for finding in report.findings:
     print(finding.severity, finding.resource, finding.issue)
 ```
+
+### Common use cases
+
+**1. Check a new stack before `terraform apply`.** A developer has written a small web
+stack: two VMs, a MySQL database, an uploads bucket and a Pub/Sub topic
+(`evals/dataset/mixed/web_stack.tf`). They paste it into the UI. The real output with
+the default model is saved in
+[`docs/examples/web_stack_review.md`](docs/examples/web_stack_review.md). In short:
+
+```
+2 security finding(s): 1 medium, 1 low. Estimated cost: $124.32/month.
+
+[MEDIUM] SQL-004 google_sql_database_instance.db   Automated backups are off.
+[LOW]    GCS-004 google_storage_bucket.uploads     Object versioning is off.
+[MEDIUM] google_compute_instance.app (cost)        Consider Cloud Run for the stateless
+                                                   web service.
+         Source: https://cloud.google.com/run/docs/overview/what-is-cloud-run
+Cost: VMs $113.62, database $10.30, bucket $0.40 (each line lists its assumptions)
+Not reviewed: google_pubsub_topic.events (unsupported type)
+3 LLM calls, 4,413 + 311 tokens, $0.0021, 14.6 s
+```
+
+The security findings come from the rules, the cost from the estimator, and only the
+Cloud Run suggestion from the LLM, with a link to the page it is based on.
+
+**2. A coding agent reviews its own Terraform.** Claude Code writes `main.tf`, then
+calls the MCP tool `review_gcp_infra(terraform=..., project_id="shop")`. It gets back
+`{"status": "ok", "markdown": ..., "report": {...}}`, reads the findings and fixes the
+file before showing it to the user. The structured `report` lets the agent check
+`severity == "critical"` without parsing text.
+
+**3. Project rules are remembered.** In the UI sidebar, under **Project memory**, set
+the project `shop` to a budget of $100/month and region `europe-west1`. Every later
+review of `shop` prices resources without a region in `europe-west1` and adds a finding
+when the estimate is over budget. The same memory is used through the MCP tool when it
+passes `project_id="shop"`.
+
+**4. Teach it what you do not care about.** After a review, mark a cost suggestion as
+not useful and press **Finish review**. Similar suggestions for that project are moved
+down and marked as deprioritised next time. Security findings cannot be dismissed this
+way: the feedback form does not offer them, and the report is checked against the rule
+output before it is returned.
+
+**5. Bad input gets a clear answer, not a crash.** Real responses from the MCP tool:
+
+```json
+{"status": "rejected", "error": "The input does not look like Terraform: no resource, provider, variable or module block was found. Only .tf files are supported."}
+{"status": "rejected", "error": "The input is 210 KB. The limit is 200 KB."}
+```
+
+**6. No API key, or the provider is down.** The review still returns the security
+findings and the cost estimate, with a warning that the AI-written part is missing.
 
 ### Tests, lint, evals
 

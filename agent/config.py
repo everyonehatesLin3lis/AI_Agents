@@ -12,7 +12,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-DEFAULT_MODEL = "openai/gpt-6-luna"
+# Chosen from the saved model comparison: fastest, every recommendation cited (README).
+DEFAULT_MODEL = "google/gemini-3.5-flash-lite"
 
 
 class Settings(BaseModel):
