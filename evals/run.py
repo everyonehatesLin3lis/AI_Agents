@@ -2,7 +2,7 @@
 
     uv run python -m evals.run                        # deterministic + LLM (if a key is set)
     uv run python -m evals.run --deterministic-only   # no API key needed
-    uv run python -m evals.run --models openai/gpt-6-luna,google/gemini-3.1-flash-lite --runs 3
+    uv run python -m evals.run --models xiaomi/mimo-v2.6-flash,deepseek/deepseek-v4-flash --runs 3
 
 Every run writes a new JSON file to evals/results/ with the date, git commit, models,
 settings and prices used. Nothing is overwritten, so earlier results stay available.
@@ -36,8 +36,13 @@ from rag.ingest import build_store
 from rag.retriever import search_gcp_docs
 
 RESULTS_DIR = Path(__file__).parent / "results"
-DEFAULT_MODELS = ["openai/gpt-6-luna", "google/gemini-3.1-flash-lite", "openai/gpt-6.1-terra"]
-DEFAULT_JUDGE = "openai/gpt-6.1-sol"
+# The models of the saved comparison run (see README, Research method).
+DEFAULT_MODELS = [
+    "xiaomi/mimo-v2.6-flash",
+    "deepseek/deepseek-v4-flash",
+    "google/gemini-3.5-flash-lite",
+]
+DEFAULT_JUDGE = "openai/gpt-5-mini"
 OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models"
 
 

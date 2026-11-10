@@ -2,7 +2,9 @@
 
     uv run python -m evals.report
 
-Reads the newest `*_deterministic.json` and `*_llm.json` in evals/results/. Writes the
+Reads the newest `*_deterministic.json` in evals/results/, the newest `*_llm.json` with
+the `full` configuration (model comparison) and the newest with several configurations
+(ablations). Writes the
 charts to docs/img/ and replaces the block between the RESULTS markers in README.md.
 Every table names the result file it came from, so each number can be traced.
 """
@@ -10,6 +12,7 @@ Every table names the result file it came from, so each number can be traced.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -28,11 +31,36 @@ START, END = "<!-- RESULTS:START -->", "<!-- RESULTS:END -->"
 SURFACE, INK, MUTED, GRID, BAR = "#fcfcfb", "#0b0b0b", "#898781", "#e1e0d9", "#2a78d6"
 
 
-def latest(kind: str) -> tuple[Path, dict[str, Any]] | None:
-    files = sorted(RESULTS_DIR.glob(f"*_{kind}.json"))
-    if not files:
-        return None
-    return files[-1], json.loads(files[-1].read_text(encoding="utf-8"))
+Result = tuple[Path, dict[str, Any]]
+
+
+def latest(
+    kind: str, results_dir: Path = RESULTS_DIR, where: Callable[[dict[str, Any]], bool] = bool
+) -> Result | None:
+    """Newest result file of `kind` whose content passes `where`."""
+    for path in sorted(results_dir.glob(f"*_{kind}.json"), reverse=True):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if where(data):
+            return path, data
+    return None
+
+
+def _configs(data: dict[str, Any]) -> set[str]:
+    return {row["config"] for row in data["summary"] if row.get("n_ok")}
+
+
+def comparison_run(results_dir: Path = RESULTS_DIR) -> Result | None:
+    """Newest LLM run with the `full` configuration: the model comparison."""
+    return latest("llm", results_dir, lambda data: "full" in _configs(data))
+
+
+def ablation_run(results_dir: Path = RESULTS_DIR) -> Result | None:
+    """Newest LLM run with more than one configuration: the ablations.
+
+    The two can come from different runs: ablations are paid for once, on one model,
+    while the model comparison can be rerun with other models.
+    """
+    return latest("llm", results_dir, lambda data: len(_configs(data)) > 1)
 
 
 def table(headers: list[str], rows: list[list[Any]]) -> str:
@@ -58,10 +86,13 @@ def bar_panels(path: Path, labels: list[str], panels: list[tuple[str, list[float
         axis.set_facecolor(SURFACE)
         axis.set_title(title, fontsize=10, color=INK, loc="left")
         axis.invert_yaxis()
-        axis.set_xlim(0, max(shown or [1]) * 1.45 or 1)  # room for the value labels
+        is_score = fmt == "{:.2f}" and max(shown or [0]) <= 1  # shares and 0-1 scores
+        top = 1.0 if is_score else max(shown or [1]) or 1.0
+        axis.set_xlim(0, top * 1.45)  # room for the value labels
         axis.xaxis.grid(True, color=GRID, linewidth=0.8)
         axis.set_axisbelow(True)
         axis.tick_params(colors=MUTED, labelsize=8, length=0)
+        axis.set_xticklabels([])  # the values are written on the bars
         for label in axis.get_yticklabels():
             label.set_color(INK)
             label.set_fontsize(9)
@@ -128,11 +159,22 @@ def deterministic_section(path: Path, data: dict[str, Any]) -> str:
 # ----------------------------------------------------------------------- LLM
 
 
+def _source(path: Path, meta: dict[str, Any]) -> str:
+    return (
+        f"Source: `evals/results/{path.name}` (run {meta['date_utc']}, git commit: "
+        f"{meta['git']['commit']}). Provider: {meta['provider']}. {meta['n_samples']} samples "
+        f"x {meta['runs_per_sample']} runs per configuration. Judge model: "
+        f"{meta['judge_model']}. Token prices: {meta['model_price_source']}."
+    )
+
+
+def _usd(value: float | None) -> str | None:
+    return None if value is None else f"{value:.5f}"
+
+
 def llm_section(path: Path, data: dict[str, Any]) -> str:
-    meta, rows = data["meta"], [r for r in data["summary"] if r.get("n_ok")]
-    full = [r for r in rows if r["config"] == "full"]
-    first = meta["models"][0]
-    ablation = [r for r in rows if r["model"] == first]
+    meta = data["meta"]
+    full = [r for r in data["summary"] if r.get("n_ok") and r["config"] == "full"]
     quality = [
         [r["model"], r["n_ok"], r["security_recall"], r["security_precision"],
          r["critical_findings_on_clean"], r["injection_reviews_intact"],
@@ -143,15 +185,8 @@ def llm_section(path: Path, data: dict[str, Any]) -> str:
     speed = [
         [r["model"], r["latency"]["median_s"], r["latency"]["p95_s"],
          r["deterministic_median_s"], r["llm_median_s"], r["llm_calls_mean"],
-         r["input_tokens_mean"], r["output_tokens_mean"],
-         None if r["cost_usd_mean"] is None else f"{r['cost_usd_mean']:.5f}"]
+         r["input_tokens_mean"], r["output_tokens_mean"], _usd(r["cost_usd_mean"])]
         for r in full
-    ]  # fmt: skip
-    ablation_rows = [
-        [r["config"], r["recommendations_per_review"], r["share_with_valid_source"],
-         r["rewrites_per_review"], r["latency"]["median_s"], r["llm_calls_mean"],
-         None if r["cost_usd_mean"] is None else f"{r['cost_usd_mean']:.5f}"]
-        for r in ablation
     ]  # fmt: skip
     nodes = sorted({n for r in full for n in r["node_median_s"]})
     node_rows = [[r["model"], *[r["node_median_s"].get(n, 0.0) for n in nodes]] for r in full]
@@ -164,72 +199,60 @@ def llm_section(path: Path, data: dict[str, Any]) -> str:
             ("Faithfulness (0 to 1)", [r["faithfulness_mean"] for r in full], "{:.2f}"),
         ],
     )
-    bar_panels(
-        IMG_DIR / "ablations.png",
-        [r["config"] for r in ablation],
-        [
-            ("Median latency per review (s)",
-             [r["latency"]["median_s"] for r in ablation], "{:.1f} s"),
-            ("Share of recommendations with a source",
-             [r["share_with_valid_source"] for r in ablation], "{:.2f}"),
-            ("LLM cost per review (USD)", [r["cost_usd_mean"] for r in ablation], "${:.5f}"),
-        ],
-    )  # fmt: skip
+    quality_headers = [
+        "Model", "Reviews", "Security recall", "Security precision", "Critical on clean",
+        "Injection intact", "Recs / review", "Share with source", "Faithfulness",
+        "Answer relevancy", "LLM fallback rate",
+    ]  # fmt: skip
+    speed_headers = [
+        "Model", "Median (s)", "p95 (s)", "Deterministic steps (s)", "LLM steps (s)",
+        "LLM calls", "Input tokens", "Output tokens", "USD / review",
+    ]  # fmt: skip
     return "\n\n".join(
         [
             "### Full agent, per model",
-            f"Source: `evals/results/{path.name}` (run {meta['date_utc']}, git commit: "
-            f"{meta['git']['commit']}). Provider: {meta['provider']}. {meta['n_samples']} samples "
-            f"x {meta['runs_per_sample']} runs per configuration. Judge model: "
-            f"{meta['judge_model']}. Token prices: {meta['model_price_source']}.",
+            _source(path, meta),
             "**Quality** (configuration `full`):",
-            table(
-                [
-                    "Model",
-                    "Reviews",
-                    "Security recall",
-                    "Security precision",
-                    "Critical on clean",
-                    "Injection intact",
-                    "Recs / review",
-                    "Share with source",
-                    "Faithfulness",
-                    "Answer relevancy",
-                    "LLM fallback rate",
-                ],
-                quality,
-            ),  # fmt: skip
+            table(quality_headers, quality),
             "**Speed and cost** (configuration `full`):",
-            table(
-                [
-                    "Model",
-                    "Median (s)",
-                    "p95 (s)",
-                    "Deterministic steps (s)",
-                    "LLM steps (s)",
-                    "LLM calls",
-                    "Input tokens",
-                    "Output tokens",
-                    "USD / review",
-                ],
-                speed,
-            ),  # fmt: skip
+            table(speed_headers, speed),
             "![Latency, cost and faithfulness per model](docs/img/models.png)",
             "**Median seconds per graph node:**",
             table(["Model", *nodes], node_rows),
+        ]
+    )
+
+
+def ablation_section(path: Path, data: dict[str, Any]) -> str:
+    meta = data["meta"]
+    first = meta["models"][0]
+    rows = [r for r in data["summary"] if r.get("n_ok") and r["model"] == first]
+    ablation_rows = [
+        [r["config"], r["recommendations_per_review"], r["share_with_valid_source"],
+         r["rewrites_per_review"], r["latency"]["median_s"], r["llm_calls_mean"],
+         _usd(r["cost_usd_mean"]), r["faithfulness_mean"], r["answer_relevancy_mean"]]
+        for r in rows
+    ]  # fmt: skip
+    bar_panels(
+        IMG_DIR / "ablations.png",
+        [r["config"] for r in rows],
+        [
+            ("Median latency per review (s)",
+             [r["latency"]["median_s"] for r in rows], "{:.1f} s"),
+            ("Share of recommendations with a source",
+             [r["share_with_valid_source"] for r in rows], "{:.2f}"),
+            ("LLM cost per review (USD)", [r["cost_usd_mean"] for r in rows], "${:.5f}"),
+        ],
+    )  # fmt: skip
+    headers = [
+        "Configuration", "Recs / review", "Share with source", "Rewrites / review",
+        "Median (s)", "LLM calls", "USD / review", "Faithfulness", "Answer relevancy",
+    ]  # fmt: skip
+    return "\n\n".join(
+        [
             f"### Ablations ({first})",
-            table(
-                [
-                    "Configuration",
-                    "Recs / review",
-                    "Share with source",
-                    "Rewrites / review",
-                    "Median (s)",
-                    "LLM calls",
-                    "USD / review",
-                ],
-                ablation_rows,
-            ),  # fmt: skip
+            _source(path, meta),
+            table(headers, ablation_rows),
             "![Ablations](docs/img/ablations.png)",
         ]
     )
@@ -252,8 +275,10 @@ def build() -> str:
         if deterministic
         else "No deterministic results yet. Run `uv run python -m evals.run`."
     )
-    llm = latest("llm")
-    parts.append(llm_section(*llm) if llm else LLM_PENDING)
+    comparison = comparison_run()
+    parts.append(llm_section(*comparison) if comparison else LLM_PENDING)
+    if ablations := ablation_run():
+        parts.append(ablation_section(*ablations))
     return "\n\n".join(parts)
 
 

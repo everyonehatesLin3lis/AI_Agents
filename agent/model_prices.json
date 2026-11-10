@@ -1,18 +1,67 @@
 {
   "source": "https://openrouter.ai/api/v1/models",
-  "snapshot_date": "2026-11-09",
+  "snapshot_date": "2026-11-10",
   "note": "USD per 1 million tokens. Used to turn token counts into a cost. The eval runner refreshes these from OpenRouter and saves the prices it used in each result file. A model that is not listed has an unknown cost, shown as 'n/a', never a guess.",
   "usd_per_1m_tokens": {
-    "openai/gpt-6-luna": {"input": 0.10, "output": 0.50},
-    "openai/gpt-6.1-terra": {"input": 1.00, "output": 5.00},
-    "openai/gpt-6.1-sol": {"input": 2.00, "output": 10.00},
-    "openai/gpt-5-nano": {"input": 0.05, "output": 0.40},
-    "openai/gpt-5-mini": {"input": 0.25, "output": 2.00},
-    "openai/gpt-4o-mini": {"input": 0.15, "output": 0.60},
-    "anthropic/claude-haiku-5.5": {"input": 0.10, "output": 0.50},
-    "google/gemini-3.1-flash-lite": {"input": 0.25, "output": 1.50},
-    "google/gemini-3.5-flash": {"input": 1.50, "output": 9.00},
-    "meta-llama/llama-4-scout": {"input": 0.10, "output": 0.30},
-    "mistralai/mistral-small-2603": {"input": 0.15, "output": 0.60}
+    "openai/gpt-6-luna": {
+      "input": 0.1,
+      "output": 0.5
+    },
+    "openai/gpt-6.1-terra": {
+      "input": 1.0,
+      "output": 5.0
+    },
+    "openai/gpt-6.1-sol": {
+      "input": 2.0,
+      "output": 10.0
+    },
+    "openai/gpt-5-nano": {
+      "input": 0.05,
+      "output": 0.4
+    },
+    "openai/gpt-5-mini": {
+      "input": 0.25,
+      "output": 2.0
+    },
+    "openai/gpt-4o-mini": {
+      "input": 0.15,
+      "output": 0.6
+    },
+    "anthropic/claude-haiku-5.5": {
+      "input": 0.1,
+      "output": 0.5
+    },
+    "google/gemini-3.1-flash-lite": {
+      "input": 0.25,
+      "output": 1.5
+    },
+    "google/gemini-3.5-flash": {
+      "input": 1.5,
+      "output": 9.0
+    },
+    "meta-llama/llama-4-scout": {
+      "input": 0.1,
+      "output": 0.3
+    },
+    "mistralai/mistral-small-2603": {
+      "input": 0.15,
+      "output": 0.6
+    },
+    "xiaomi/mimo-v2.6-flash": {
+      "input": 0.14,
+      "output": 0.28
+    },
+    "xiaomi/mimo-v2.6-pro": {
+      "input": 0.435,
+      "output": 0.87
+    },
+    "deepseek/deepseek-v4-flash": {
+      "input": 0.091,
+      "output": 0.182
+    },
+    "google/gemini-3.5-flash-lite": {
+      "input": 0.3,
+      "output": 2.5
+    }
   }
 }

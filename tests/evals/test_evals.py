@@ -164,3 +164,30 @@ def test_judge_failure_is_recorded_not_raised(make_deps, make_llm):
 
     assert scores["faithfulness"] is None
     assert scores["judge_error"] is not None
+
+
+# ---------------------------------------------------------------- README report
+
+
+def _llm_result(models: list[str], configs: list[str]) -> dict:
+    row = {"n_ok": 1, "latency": {"median_s": 1.0, "p95_s": 1.0}}
+    return {
+        "meta": {"models": models},
+        "summary": [{**row, "model": m, "config": c} for m in models for c in configs],
+    }
+
+
+def test_report_takes_comparison_and_ablations_from_their_own_latest_runs(tmp_path):
+    import json
+
+    from evals.report import ablation_run, comparison_run
+
+    files = {
+        "20260101T000000Z_llm.json": _llm_result(["a"], ["full", "no_rag"]),
+        "20260102T000000Z_llm.json": _llm_result(["a", "b", "c"], ["full"]),
+    }
+    for name, data in files.items():
+        (tmp_path / name).write_text(json.dumps(data), encoding="utf-8")
+
+    assert comparison_run(tmp_path)[0].name == "20260102T000000Z_llm.json"
+    assert ablation_run(tmp_path)[0].name == "20260101T000000Z_llm.json"
