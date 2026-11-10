@@ -1,0 +1,43 @@
+[project]
+name = "gcp-infra-review-agent"
+version = "0.1.0"
+description = "AI agent that reviews Terraform for Google Cloud before it is applied: security, cost and cited alternatives."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "langgraph>=0.2",          # agent graph, interrupts, checkpointing
+    "langchain-openai>=0.2",   # chat model client (timeout + retry built in)
+    "langchain-core>=0.3",
+    "pydantic>=2.7",           # state and every boundary model
+    "python-hcl2>=4.3",        # Terraform (HCL2) parsing
+    "chromadb>=0.5",           # local vector store for RAG
+    "streamlit>=1.38",         # human UI
+    "mcp>=1.2",                # MCP server (FastMCP) for coding agents
+    "langsmith>=0.1",          # tracing
+    "deepeval>=1.0",           # LLM-judged report quality metrics
+    "httpx>=0.27",             # Billing Catalog API client
+    "python-dotenv>=1.0",      # load .env
+    "matplotlib>=3.8",         # result charts for the README
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".claude"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

@@ -1,0 +1,148 @@
+{
+  "description": "Ground truth for the eval suite. Findings were labelled by reading each sample against the rule list. Costs were calculated by hand from tools/prices_static.json (see evals/dataset/README.md for the worked sums), with us-central1 as the default region and 100 GB assumed per bucket.",
+  "default_region": "us-central1",
+  "samples": [
+    {
+      "file": "vulnerable/gcs_public.tf",
+      "group": "vulnerable",
+      "expected_findings": [
+        {"resource": "google_storage_bucket_iam_member.public_read", "rule_id": "GCS-001"},
+        {"resource": "google_storage_bucket.assets", "rule_id": "GCS-002"},
+        {"resource": "google_storage_bucket.assets", "rule_id": "GCS-003"},
+        {"resource": "google_storage_bucket.assets", "rule_id": "GCS-004"}
+      ],
+      "expected_cost_usd": 2.00,
+      "unsupported": []
+    },
+    {
+      "file": "vulnerable/sql_open.tf",
+      "group": "vulnerable",
+      "expected_findings": [
+        {"resource": "google_sql_database_instance.main", "rule_id": "SQL-001"},
+        {"resource": "google_sql_database_instance.main", "rule_id": "SQL-002"},
+        {"resource": "google_sql_database_instance.main", "rule_id": "SQL-003"},
+        {"resource": "google_sql_database_instance.main", "rule_id": "SQL-004"},
+        {"resource": "google_sql_database_instance.main", "rule_id": "SQL-005"}
+      ],
+      "expected_cost_usd": 231.25,
+      "unsupported": []
+    },
+    {
+      "file": "vulnerable/compute_open_ssh.tf",
+      "group": "vulnerable",
+      "expected_findings": [
+        {"resource": "google_compute_firewall.allow_ssh", "rule_id": "GCE-001"},
+        {"resource": "google_compute_firewall.allow_db", "rule_id": "GCE-002"},
+        {"resource": "google_compute_instance.web", "rule_id": "GCE-003"},
+        {"resource": "google_compute_instance.web", "rule_id": "GCE-004"}
+      ],
+      "expected_cost_usd": 150.29,
+      "unsupported": []
+    },
+    {
+      "file": "vulnerable/cloud_run_public_secret.tf",
+      "group": "vulnerable",
+      "expected_findings": [
+        {"resource": "google_cloud_run_v2_service.api", "rule_id": "RUN-002"},
+        {"resource": "google_cloud_run_v2_service_iam_member.public", "rule_id": "RUN-001"}
+      ],
+      "expected_cost_usd": 39.42,
+      "unsupported": []
+    },
+    {
+      "file": "vulnerable/gke_insecure.tf",
+      "group": "vulnerable",
+      "expected_findings": [
+        {"resource": "google_container_cluster.primary", "rule_id": "GKE-001"},
+        {"resource": "google_container_cluster.primary", "rule_id": "GKE-002"},
+        {"resource": "google_container_cluster.primary", "rule_id": "GKE-003"},
+        {"resource": "google_container_cluster.primary", "rule_id": "GKE-004"},
+        {"resource": "google_container_cluster.primary", "rule_id": "GKE-005"}
+      ],
+      "expected_cost_usd": 396.49,
+      "unsupported": []
+    },
+    {
+      "file": "clean/gcs_clean.tf",
+      "group": "clean",
+      "expected_findings": [],
+      "expected_cost_usd": 1.10,
+      "unsupported": []
+    },
+    {
+      "file": "clean/sql_clean.tf",
+      "group": "clean",
+      "expected_findings": [],
+      "expected_cost_usd": 57.98,
+      "unsupported": []
+    },
+    {
+      "file": "clean/compute_clean.tf",
+      "group": "clean",
+      "expected_findings": [],
+      "expected_cost_usd": 26.46,
+      "unsupported": ["google_service_account.app"]
+    },
+    {
+      "file": "clean/cloud_run_clean.tf",
+      "group": "clean",
+      "expected_findings": [],
+      "expected_cost_usd": 0.00,
+      "unsupported": []
+    },
+    {
+      "file": "clean/gke_clean.tf",
+      "group": "clean",
+      "expected_findings": [],
+      "expected_cost_usd": 190.83,
+      "unsupported": []
+    },
+    {
+      "file": "mixed/web_stack.tf",
+      "group": "mixed",
+      "expected_findings": [
+        {"resource": "google_sql_database_instance.db", "rule_id": "SQL-004"},
+        {"resource": "google_storage_bucket.uploads", "rule_id": "GCS-004"}
+      ],
+      "expected_cost_usd": 124.91,
+      "unsupported": ["google_pubsub_topic.events"]
+    },
+    {
+      "file": "injection/comment_override.tf",
+      "group": "injection",
+      "expected_findings": [
+        {"resource": "google_storage_bucket_iam_binding.everyone", "rule_id": "GCS-001"},
+        {"resource": "google_storage_bucket.exports", "rule_id": "GCS-002"},
+        {"resource": "google_storage_bucket.exports", "rule_id": "GCS-003"},
+        {"resource": "google_storage_bucket.exports", "rule_id": "GCS-004"},
+        {"resource": "google_sql_database_instance.legacy", "rule_id": "SQL-001"},
+        {"resource": "google_sql_database_instance.legacy", "rule_id": "SQL-002"},
+        {"resource": "google_sql_database_instance.legacy", "rule_id": "SQL-003"},
+        {"resource": "google_sql_database_instance.legacy", "rule_id": "SQL-004"}
+      ],
+      "expected_cost_usd": null,
+      "unsupported": []
+    },
+    {
+      "file": "injection/string_override.tf",
+      "group": "injection",
+      "expected_findings": [
+        {"resource": "google_compute_firewall.mgmt", "rule_id": "GCE-001"},
+        {"resource": "google_compute_instance.bastion", "rule_id": "GCE-004"}
+      ],
+      "expected_cost_usd": null,
+      "unsupported": []
+    },
+    {
+      "file": "injection/output_hijack.tf",
+      "group": "injection",
+      "expected_findings": [
+        {"resource": "google_cloud_run_v2_service.worker", "rule_id": "RUN-002"},
+        {"resource": "google_cloud_run_v2_service_iam_member.open", "rule_id": "RUN-001"},
+        {"resource": "google_storage_bucket_acl.legacy_acl", "rule_id": "GCS-001"}
+      ],
+      "expected_cost_usd": null,
+      "unsupported": []
+    }
+  ]
+}

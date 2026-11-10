@@ -1,0 +1,229 @@
+# Learning notes
+
+Plain-language notes on each part of the project: what was built, why this way, what
+else was possible and what can break. Written so the project owner can explain every
+decision in a live review.
+
+---
+
+## Phase 1: Deterministic tools
+
+**What was built.** Three tools that are ordinary Python with no AI in them:
+
+- The **parser** turns Terraform text into a list of resources. Before parsing it
+  checks that the input is really Terraform and is under 200 KB.
+- The **security rules** are 20 small functions. Each looks at one resource and says
+  "this is a problem because…" or nothing.
+- The **cost estimator** multiplies quantities by prices: for a VM, vCPUs and memory
+  times the hourly price times 730 hours, plus the disk.
+
+**Why this way.** These questions have right answers. "Is `allUsers` in the member
+list?" is not a matter of opinion, so asking an LLM would only add cost, delay and a
+chance of being wrong. Code gives the same answer every time and you can point at the
+line that produced it.
+
+**Alternatives.** Use an existing scanner such as Checkov or tfsec for security, or
+Infracost for cost. Those are more complete. Writing a small version here keeps the
+project self-contained and makes every rule explainable. In a real product you would
+wrap the existing tools.
+
+**What can break.**
+- Values that are only known at apply time (`var.region`, references to other
+  resources). The tools do not evaluate expressions, so they treat these as unknown.
+- New resource types or new attribute names in the Google provider.
+- The static prices going out of date. That is why the report says so.
+
+**Words to know.** *Deterministic*: same input, same output. *HCL*: the language
+Terraform files are written in. *SKU*: one priced item in Google's price list.
+
+---
+
+## Phase 2: RAG
+
+**What was built.** A small library of notes on Google Cloud documentation pages, and
+a search over it. `ingest.py` splits each note into sections, turns each section into
+a vector (a list of numbers that represents its meaning) and stores it in Chroma.
+`search_gcp_docs` turns a question into a vector and returns the closest sections.
+
+**Why this way.** An LLM on its own will happily state "facts" about GCP that are out
+of date or invented. RAG (retrieval-augmented generation) gives it real text to work
+from, and every piece of text carries the URL of the page it came from. That is what
+lets the report cite a source.
+
+**Alternatives.** Let the LLM search the web live (slower, less predictable, and the
+results change from day to day). Fine-tune a model on the docs (expensive, and it
+still could not cite). Put all the docs in the prompt (works for 34 pages, not for
+3,400, and costs tokens on every call).
+
+**What can break.**
+- The search returns the nearest text, which is not always relevant text. That is why
+  the next step, grading, exists.
+- If the answer is not in the library, nothing can find it.
+- The notes can drift from what Google's pages say today.
+
+**Words to know.** *Embedding*: the vector for a piece of text. *Chunk*: one stored
+piece of a document. *Hit rate at k*: how often the right document is in the top k
+results.
+
+---
+
+## Phase 3: Memory
+
+**What was built.** A SQLite file with three tables: what we know about each project
+(budget, region, preferences), the feedback the user has given, and a history of
+reviews. Plus one small file, `feedback_policy.py`, that decides what feedback is
+allowed to change.
+
+**Why this way.** The agent has two kinds of memory. *Short-term* memory is the graph
+state: it exists for one review. *Long-term* memory is this database: it survives
+between reviews, so the second review of a project already knows its budget and knows
+which suggestions the user did not find useful.
+
+The policy is deliberately tiny and separate. The rule "feedback can lower the
+priority of a cost suggestion but can never touch a security finding" is the most
+important safety property in the project, so it lives in one place that can be read in
+a minute.
+
+**Alternatives.** Store memory as free text and let the LLM read it (flexible, but
+then memory becomes another way to inject instructions). Use a vector database for
+memory (useful for large, fuzzy memories; overkill for a budget and a region).
+
+**What can break.** A dismissal applies to a whole kind of suggestion for a resource
+type, which is coarse. Feedback given by mistake stays until a later "helpful" on the
+same kind cancels it.
+
+---
+
+## Phase 4: The agent graph
+
+**What was built.** Ten nodes connected in a graph. Three are plain code, four use the
+LLM, and three handle searching, the human pause and saving. The state is one Pydantic
+object that every node reads and updates.
+
+**Why a graph and not one big prompt.** One prompt that "reviews the Terraform" would
+be a black box. Splitting the work means each step has one job, can fail on its own,
+can be timed and tested on its own, and uses the LLM only if it needs judgment.
+
+**The four LLM steps and why each needs an LLM.**
+1. `plan_research` decides what is worth looking up. That depends on the whole
+   picture: what is expensive, what looks oversized, what the project prefers.
+2. `grade_docs` reads the search results and keeps the useful ones. Search finds
+   similar words; a reader finds relevant meaning.
+3. `rewrite_query` tries different wording when the search came back poor.
+4. `write_report` writes the summary and turns documents into concrete advice.
+
+**The loop.** If fewer than two useful documents are found, the queries are rewritten
+and the search runs again. A counter in the state stops this after two rewrites. A loop
+without a counter is the classic way an agent burns money, so the limit is checked in
+a plain routing function, not left to the model.
+
+**The pause.** `human_review` calls `interrupt()`. The graph stops, its state is saved
+by a checkpointer, and the UI shows the report. When the user submits feedback the
+graph resumes at the same node. This is "human in the loop".
+
+**Guards on the LLM's output.** The LLM's answer is treated like user input: checked
+before use.
+- It must be valid JSON for a schema. One retry, then a fallback.
+- The schema has no "security" category and no "critical" or "high" severity, so the
+  LLM cannot raise an alarm that the rules did not.
+- A recommendation about a resource that is not in the file is dropped.
+- A source is accepted only if it is one of the documents that were retrieved.
+- Links to anything except Google Cloud documentation are removed.
+- A claimed saving is capped at what the resource costs.
+- At the end, the security findings in the report are compared with the rule output.
+  If they differ, the review fails loudly.
+
+**What can break.**
+- A model that ignores the JSON instruction. Handled by the retry and the fallback.
+- A provider outage. Handled: the report still has the rule findings and the cost.
+- A model that writes plausible but wrong advice from a real document. The guards
+  cannot catch that. The faithfulness metric in the evals is there to measure it.
+
+**Words to know.** *State*: the data passed between nodes. *Reducer*: the rule for
+combining two updates to the same field (for example, append to the error list).
+*Conditional edge*: a function that picks the next node. *Checkpointer*: where a
+paused graph is saved. *Fallback*: what a step does when its main path fails.
+
+---
+
+## Phase 5: Interfaces
+
+**What was built.** Two ways in. The **MCP server** exposes one tool,
+`review_gcp_infra`, that a coding agent can call. The **Streamlit UI** is for people:
+paste Terraform, read the report, give feedback.
+
+**Why MCP.** MCP (Model Context Protocol) is a standard way to give an AI assistant a
+tool. Any MCP client can use the reviewer without custom glue. The intended use is a
+coding agent calling the review on Terraform it has just written, before proposing to
+apply it. So one agent checks another agent's work.
+
+**Why the Developer section is separate.** Model, temperature and prompt additions are
+there for experiments. A normal user should not need them and should not change them
+by accident. Nothing in that section can change the security rules.
+
+**Error handling.** Both interfaces turn every failure into a clear message. The MCP
+tool returns `{"status": "rejected", "error": "..."}` and never a stack trace, because
+the caller is another program that has to explain the problem to its user.
+
+**What can break.** A paused review is held in memory, so restarting the UI loses it.
+The MCP tool waits for the whole review, which takes as long as the LLM calls take.
+
+---
+
+## Phase 6: Evaluation
+
+**What was built.** A fixed dataset with known right answers, a runner that measures
+the agent against it and saves the raw results, and a script that turns saved results
+into the README tables.
+
+**Why two kinds of test.** `pytest` answers "is the code correct?" and uses a fake LLM,
+so it is fast, free and never flaky. The evals answer "how good is the output?" and
+need a real LLM, cost money and vary a little from run to run. Mixing them would make
+the tests slow and unreliable.
+
+**How to read the metrics.**
+- *Precision*: of the findings reported, how many were right. Low precision means
+  false alarms.
+- *Recall*: of the real problems, how many were found. Low recall means misses.
+- *F1*: one number that combines both.
+- *Faithfulness*: does the text only say what its sources support? Scored by another
+  LLM (the "judge").
+- *Median and p95 latency*: the typical time, and the time 95% of reviews stay under.
+  p95 shows the slow cases that an average hides.
+- *Ablation*: switch one part off and see what changes. That is how you find out
+  whether a part earns its cost.
+
+**An honest caveat to say out loud.** The rules score perfectly on the dataset, and the
+same person wrote both. That shows the rules do what they were designed to do. It does
+not show how they do on other people's Terraform. A held-out test set is the fix, and
+it is listed as future work.
+
+**What can break.** LLM results vary between runs even at temperature 0, so each
+sample is run several times. The judge is itself a model and can be wrong. Token
+prices change, so each result file records the prices it used.
+
+---
+
+## Things a reviewer is likely to ask
+
+**"Why not let the LLM do the security review?"** Because the answer must be the same
+every time, explainable, and impossible to talk out of. Text hidden in the file cannot
+persuade a regular expression.
+
+**"How do you prevent prompt injection?"** Three layers: comments are dropped by the
+parser; the LLM is shown a whitelist summary, not the file; and the LLM has no way to
+change security findings whatever it reads. The dataset has three injection samples,
+and the tests use a fake LLM that obeys the injected instructions to prove the report
+is still correct.
+
+**"What happens if OpenAI or OpenRouter is down?"** Each LLM step has a timeout,
+retries and a fallback. The review returns the rule findings and the cost estimate,
+with a warning that the advisory part is missing.
+
+**"Is this an agent or a pipeline?"** Most of it is a fixed pipeline, on purpose. The
+agentic parts are where the LLM chooses what to research, judges its own search
+results, and decides to try again. The control flow around those choices is fixed
+code, so the freedom is bounded.
+
+**"What would you do with more time?"** A held-out dataset, real variable resolution,
+more rules, and live prices for every service.
