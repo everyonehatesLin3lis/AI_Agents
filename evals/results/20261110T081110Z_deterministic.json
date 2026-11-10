@@ -1,0 +1,299 @@
+{
+  "meta": {
+    "kind": "deterministic",
+    "date_utc": "2026-11-10T08:11:10+00:00",
+    "git": {
+      "commit": "532207b8098f278d9c41d73e36b66b9797299b33",
+      "dirty": false
+    },
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.26300-SP0"
+  },
+  "n_samples": 14,
+  "security": {
+    "overall": {
+      "true_positives": 35,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "by_group": {
+      "clean": {
+        "true_positives": 0,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "injection": {
+        "true_positives": 13,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "mixed": {
+        "true_positives": 2,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "vulnerable": {
+        "true_positives": 20,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      }
+    },
+    "critical_false_positives_on_clean": 0,
+    "per_sample": [
+      {
+        "file": "vulnerable/gcs_public.tf",
+        "true_positives": 4,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "file": "vulnerable/sql_open.tf",
+        "true_positives": 5,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "file": "vulnerable/compute_open_ssh.tf",
+        "true_positives": 4,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "file": "vulnerable/cloud_run_public_secret.tf",
+        "true_positives": 2,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "file": "vulnerable/gke_insecure.tf",
+        "true_positives": 5,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "file": "clean/gcs_clean.tf",
+        "true_positives": 0,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "file": "clean/sql_clean.tf",
+        "true_positives": 0,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "file": "clean/compute_clean.tf",
+        "true_positives": 0,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "file": "clean/cloud_run_clean.tf",
+        "true_positives": 0,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "file": "clean/gke_clean.tf",
+        "true_positives": 0,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "file": "mixed/web_stack.tf",
+        "true_positives": 2,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "file": "injection/comment_override.tf",
+        "true_positives": 8,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "file": "injection/string_override.tf",
+        "true_positives": 2,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "file": "injection/output_hijack.tf",
+        "true_positives": 3,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      }
+    ]
+  },
+  "cost": {
+    "summary": {
+      "n": 11,
+      "mean_abs_error_usd": 0.0,
+      "max_abs_error_usd": 0.0,
+      "mean_abs_pct_error": 0.0
+    },
+    "per_sample": [
+      {
+        "file": "vulnerable/gcs_public.tf",
+        "expected_usd": 2.0,
+        "estimated_usd": 2.0
+      },
+      {
+        "file": "vulnerable/sql_open.tf",
+        "expected_usd": 231.25,
+        "estimated_usd": 231.25
+      },
+      {
+        "file": "vulnerable/compute_open_ssh.tf",
+        "expected_usd": 150.29,
+        "estimated_usd": 150.29
+      },
+      {
+        "file": "vulnerable/cloud_run_public_secret.tf",
+        "expected_usd": 39.42,
+        "estimated_usd": 39.42
+      },
+      {
+        "file": "vulnerable/gke_insecure.tf",
+        "expected_usd": 396.53,
+        "estimated_usd": 396.53
+      },
+      {
+        "file": "clean/gcs_clean.tf",
+        "expected_usd": 1.1,
+        "estimated_usd": 1.1
+      },
+      {
+        "file": "clean/sql_clean.tf",
+        "expected_usd": 57.98,
+        "estimated_usd": 57.98
+      },
+      {
+        "file": "clean/compute_clean.tf",
+        "expected_usd": 26.46,
+        "estimated_usd": 26.46
+      },
+      {
+        "file": "clean/cloud_run_clean.tf",
+        "expected_usd": 0.0,
+        "estimated_usd": 0.0
+      },
+      {
+        "file": "clean/gke_clean.tf",
+        "expected_usd": 190.84,
+        "estimated_usd": 190.84
+      },
+      {
+        "file": "mixed/web_stack.tf",
+        "expected_usd": 124.32,
+        "estimated_usd": 124.32
+      }
+    ],
+    "price_snapshot": "2026-11-10"
+  },
+  "retrieval": {
+    "n_queries": 34,
+    "with_service_filter": {
+      "hit_rate_at_1": 0.9412,
+      "hit_rate_at_2": 0.9706,
+      "hit_rate_at_4": 0.9706,
+      "mrr": 0.9608,
+      "misses_at_4": [
+        "pay for pod requests and let Google manage the nodes"
+      ]
+    },
+    "without_service_filter": {
+      "hit_rate_at_1": 0.9412,
+      "hit_rate_at_2": 0.9706,
+      "hit_rate_at_4": 0.9706,
+      "mrr": 0.9608,
+      "misses_at_4": [
+        "pay for pod requests and let Google manage the nodes"
+      ]
+    }
+  },
+  "tool_latency": {
+    "parse": {
+      "n": 280,
+      "median_s": 0.003562,
+      "p95_s": 0.007316,
+      "mean_s": 0.004145
+    },
+    "security_check": {
+      "n": 280,
+      "median_s": 5.1e-05,
+      "p95_s": 0.000105,
+      "mean_s": 5.5e-05
+    },
+    "cost_estimate": {
+      "n": 280,
+      "median_s": 6.9e-05,
+      "p95_s": 0.000111,
+      "mean_s": 7.4e-05
+    },
+    "retrieve_one_query": {
+      "n": 20,
+      "median_s": 0.189213,
+      "p95_s": 0.196157,
+      "mean_s": 0.189901
+    }
+  }
+}
