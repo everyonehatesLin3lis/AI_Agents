@@ -1,7 +1,7 @@
 {
   "source": "static",
-  "snapshot_date": "2026-11-09",
-  "note": "Approximate on-demand list prices in USD for us-central1, typed in by hand as a fallback for when the Cloud Billing Catalog API is not available. Other regions use an approximate multiplier. These values may be outdated: check https://cloud.google.com/pricing before relying on them.",
+  "snapshot_date": "2026-11-10",
+  "note": "Approximate on-demand list prices in USD, used as a fallback when the Cloud Billing Catalog API is not available. 'regional_prices' holds exact Compute Engine and persistent disk prices copied from the Billing Catalog API on 2026-11-10 for the listed regions. Other prices are us-central1 values typed in by hand, scaled by an approximate region multiplier. These values may be outdated: check https://cloud.google.com/pricing before relying on them.",
   "base_region": "us-central1",
   "region_multipliers": {
     "us-central1": 1.0,
@@ -35,11 +35,116 @@
     "gcs.nearline.gb_month": 0.01,
     "gcs.coldline.gb_month": 0.004,
     "gcs.archive.gb_month": 0.0012,
-    "run.vcpu_second_idle": 0.0000025,
-    "run.ram_gib_second_idle": 0.0000025,
-    "run.vcpu_second_always": 0.000018,
-    "run.ram_gib_second_always": 0.000002,
+    "run.vcpu_second_idle": 2.5e-06,
+    "run.ram_gib_second_idle": 2.5e-06,
+    "run.vcpu_second_always": 1.8e-05,
+    "run.ram_gib_second_always": 2e-06,
     "gke.cluster_fee_hour": 0.1
   },
-  "regional_prices": {}
+  "regional_prices": {
+    "us-central1": {
+      "compute.e2.ram_gb_hour": 0.002924,
+      "compute.e2.vcpu_hour": 0.021812,
+      "compute.n1.ram_gb_hour": 0.004237,
+      "compute.n1.vcpu_hour": 0.031611,
+      "compute.n2.ram_gb_hour": 0.004237,
+      "compute.n2.vcpu_hour": 0.031611,
+      "compute.n2d.ram_gb_hour": 0.003686,
+      "compute.n2d.vcpu_hour": 0.027502,
+      "disk.pd-balanced.gb_month": 0.1,
+      "disk.pd-ssd.gb_month": 0.17,
+      "disk.pd-standard.gb_month": 0.04
+    },
+    "us-east1": {
+      "compute.e2.ram_gb_hour": 0.002924,
+      "compute.e2.vcpu_hour": 0.021812,
+      "compute.n1.ram_gb_hour": 0.004237,
+      "compute.n1.vcpu_hour": 0.031611,
+      "compute.n2.ram_gb_hour": 0.004237,
+      "compute.n2.vcpu_hour": 0.031611,
+      "compute.n2d.ram_gb_hour": 0.003686,
+      "compute.n2d.vcpu_hour": 0.027502,
+      "disk.pd-balanced.gb_month": 0.1,
+      "disk.pd-ssd.gb_month": 0.17,
+      "disk.pd-standard.gb_month": 0.04
+    },
+    "us-west1": {
+      "compute.e2.ram_gb_hour": 0.002924,
+      "compute.e2.vcpu_hour": 0.021812,
+      "compute.n1.ram_gb_hour": 0.004237,
+      "compute.n1.vcpu_hour": 0.031611,
+      "compute.n2.ram_gb_hour": 0.004237,
+      "compute.n2.vcpu_hour": 0.031611,
+      "compute.n2d.ram_gb_hour": 0.003686,
+      "compute.n2d.vcpu_hour": 0.027502,
+      "disk.pd-balanced.gb_month": 0.1,
+      "disk.pd-ssd.gb_month": 0.17,
+      "disk.pd-standard.gb_month": 0.04
+    },
+    "europe-west1": {
+      "compute.e2.ram_gb_hour": 0.003216,
+      "compute.e2.vcpu_hour": 0.023993,
+      "compute.n1.ram_gb_hour": 0.004661,
+      "compute.n1.vcpu_hour": 0.034773,
+      "compute.n2.ram_gb_hour": 0.004661,
+      "compute.n2.vcpu_hour": 0.034773,
+      "compute.n2d.ram_gb_hour": 0.004055,
+      "compute.n2d.vcpu_hour": 0.030253,
+      "disk.pd-balanced.gb_month": 0.1,
+      "disk.pd-ssd.gb_month": 0.17,
+      "disk.pd-standard.gb_month": 0.04
+    },
+    "europe-west4": {
+      "compute.e2.ram_gb_hour": 0.003218,
+      "compute.e2.vcpu_hour": 0.024013,
+      "compute.n1.ram_gb_hour": 0.004664,
+      "compute.n1.vcpu_hour": 0.034802,
+      "compute.n2.ram_gb_hour": 0.004664,
+      "compute.n2.vcpu_hour": 0.034802,
+      "compute.n2d.ram_gb_hour": 0.004058,
+      "compute.n2d.vcpu_hour": 0.030278,
+      "disk.pd-balanced.gb_month": 0.11,
+      "disk.pd-ssd.gb_month": 0.187,
+      "disk.pd-standard.gb_month": 0.044
+    },
+    "europe-north1": {
+      "compute.e2.ram_gb_hour": 0.003218,
+      "compute.e2.vcpu_hour": 0.024016,
+      "compute.n1.ram_gb_hour": 0.004664,
+      "compute.n1.vcpu_hour": 0.034806,
+      "compute.n2.ram_gb_hour": 0.004664,
+      "compute.n2.vcpu_hour": 0.034806,
+      "compute.n2d.ram_gb_hour": 0.004058,
+      "compute.n2d.vcpu_hour": 0.030281,
+      "disk.pd-balanced.gb_month": 0.11,
+      "disk.pd-ssd.gb_month": 0.187,
+      "disk.pd-standard.gb_month": 0.044
+    },
+    "europe-west3": {
+      "compute.e2.ram_gb_hour": 0.003766,
+      "compute.e2.vcpu_hour": 0.028104,
+      "compute.n1.ram_gb_hour": 0.005458,
+      "compute.n1.vcpu_hour": 0.04073,
+      "compute.n2.ram_gb_hour": 0.005458,
+      "compute.n2.vcpu_hour": 0.04073,
+      "compute.n2d.ram_gb_hour": 0.004748,
+      "compute.n2d.vcpu_hour": 0.035435,
+      "disk.pd-balanced.gb_month": 0.12,
+      "disk.pd-ssd.gb_month": 0.204,
+      "disk.pd-standard.gb_month": 0.048
+    },
+    "asia-southeast1": {
+      "compute.e2.ram_gb_hour": 0.003606,
+      "compute.e2.vcpu_hour": 0.026909,
+      "compute.n1.ram_gb_hour": 0.005226,
+      "compute.n1.vcpu_hour": 0.038999,
+      "compute.n2.ram_gb_hour": 0.005226,
+      "compute.n2.vcpu_hour": 0.038999,
+      "compute.n2d.ram_gb_hour": 0.004547,
+      "compute.n2d.vcpu_hour": 0.033929,
+      "disk.pd-balanced.gb_month": 0.11,
+      "disk.pd-ssd.gb_month": 0.187,
+      "disk.pd-standard.gb_month": 0.044
+    }
+  }
 }

@@ -236,7 +236,8 @@ def _cost_section(cost: CostEstimate | None) -> list[str]:
         "## Cost estimate",
         "",
         f"Total: **${cost.total_monthly_usd:,.2f} per month** "
-        f"(price source: {cost.price_source}, default region: {cost.region})",
+        f"(price source: {cost.price_source}, "
+        f"priced in: {', '.join(cost.regions_used) or cost.default_region})",
         "",
         "| Resource | USD/month | Assumptions |",
         "|---|---:|---|",

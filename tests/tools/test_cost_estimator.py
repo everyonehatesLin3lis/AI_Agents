@@ -26,8 +26,20 @@ def test_count_multiplies_the_line_and_is_listed_as_an_assumption():
         line for line in _estimate(sample.terraform).lines if line.resource.endswith(".app")
     )
 
-    assert line.monthly_usd == pytest.approx(114.21, abs=0.01)
+    assert line.monthly_usd == pytest.approx(113.62, abs=0.01)
     assert "count = 2." in line.assumptions
+
+
+def test_estimate_separates_the_default_region_from_the_regions_actually_priced():
+    sample = next(s for s in COSTED if s.file == "mixed/web_stack.tf")
+
+    estimate = _estimate(sample.terraform, "us-central1")
+
+    assert estimate.default_region == "us-central1"
+    # VMs and SQL are in europe-west1; the "EU" multi-region bucket uses the default region.
+    assert estimate.regions_used == ["europe-west1", "us-central1"]
+    bucket = next(line for line in estimate.lines if line.service == "cloud_storage")
+    assert any("'EU'" in note and "us-central1" in note for note in bucket.assumptions)
 
 
 def test_static_prices_are_flagged_as_possibly_outdated():

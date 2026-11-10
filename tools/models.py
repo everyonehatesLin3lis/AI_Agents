@@ -100,7 +100,8 @@ class CostEstimate(BaseModel):
     lines: list[CostLine] = Field(default_factory=list)
     total_monthly_usd: float = 0.0
     currency: str = "USD"
-    region: str
+    default_region: str  # used only for resources that do not set their own location
+    regions_used: list[str] = Field(default_factory=list)  # regions actually priced
     price_source: str  # "billing_api" or "static"
     prices_may_be_outdated: bool = False
     notes: list[str] = Field(default_factory=list)

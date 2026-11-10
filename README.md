@@ -349,12 +349,18 @@ has been run. No conclusions are drawn before the numbers exist.
 - **The cost estimate is a list-price approximation.** It ignores traffic, data
   volume (a fixed 100 GB per bucket is assumed), egress, sustained and committed use
   discounts and Spot prices. Each line states its assumptions.
-- **The static price table was typed in by hand** as approximate us-central1 list
-  prices, with rough multipliers for other regions. It has not been checked line by
-  line against the current price list. The cost-error metric measures the arithmetic
-  of the estimator, not the accuracy of the prices.
-- **Live prices cover Compute Engine only**, and that code path has been tested only
-  against a simulated API, not the real one.
+- **Only part of the static price table is checked against the live API.** Compute
+  Engine and disk prices for the 8 listed regions were copied from the Billing Catalog
+  API on 2026-11-10; on that day the hand-typed us-central1 values matched it to within
+  rounding, but the old 1.1 Europe multiplier overpriced disks by 10%, which is why exact
+  regional prices are now stored. Cloud SQL, Cloud Storage, Cloud Run and GKE fee prices
+  are still hand-typed, with rough multipliers for other regions. The cost-error metric
+  measures the arithmetic of the estimator, not the accuracy of the prices.
+- **Live prices cover Compute Engine only.** The live path was checked once against
+  the real API (47 regions returned); the evals use the static table on purpose so the
+  numbers are reproducible.
+- **Multi-region bucket locations** (`EU`, `US`, `ASIA`) are priced as the default
+  region, and the cost line says so.
 - **The documentation store is small**: 34 pages summarised as short notes. A
   recommendation can only cite what is in the store.
 - **Structured values still reach the LLM.** Resource names and whitelisted attribute

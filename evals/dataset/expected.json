@@ -59,7 +59,7 @@
         {"resource": "google_container_cluster.primary", "rule_id": "GKE-004"},
         {"resource": "google_container_cluster.primary", "rule_id": "GKE-005"}
       ],
-      "expected_cost_usd": 396.49,
+      "expected_cost_usd": 396.53,
       "unsupported": []
     },
     {
@@ -94,7 +94,7 @@
       "file": "clean/gke_clean.tf",
       "group": "clean",
       "expected_findings": [],
-      "expected_cost_usd": 190.83,
+      "expected_cost_usd": 190.84,
       "unsupported": []
     },
     {
@@ -104,7 +104,7 @@
         {"resource": "google_sql_database_instance.db", "rule_id": "SQL-004"},
         {"resource": "google_storage_bucket.uploads", "rule_id": "GCS-004"}
       ],
-      "expected_cost_usd": 124.91,
+      "expected_cost_usd": 124.32,
       "unsupported": ["google_pubsub_topic.events"]
     },
     {

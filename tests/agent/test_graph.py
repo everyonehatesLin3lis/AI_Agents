@@ -375,7 +375,7 @@ def test_project_memory_sets_region_and_budget(make_deps, make_llm):
 
     budget = next(f for f in report.findings if f.rule_id == "COST-BUDGET")
     assert "above the project budget of $100.00" in budget.issue
-    assert report.cost_estimate.region == "europe-west1"
+    assert report.cost_estimate.default_region == "europe-west1"
     assert '"budget_monthly_usd": 100' in deps.llm.calls_for("PLAN_RESEARCH")[0]["user"]
 
 

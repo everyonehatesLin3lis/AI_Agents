@@ -14,7 +14,9 @@ change between runs, so results from different models and dates can be compared.
 
 All sums use `tools/prices_static.json`, 730 hours per month, default region
 `us-central1`. They were worked out by hand, not by running the estimator, so the test
-can disagree with the code.
+can disagree with the code. Compute Engine and disk prices use the exact per-region
+values in `regional_prices` (copied from the Billing Catalog API on 2026-11-10); other
+services use the us-central1 price times the region multiplier.
 
 **vulnerable/gcs_public.tf**: 100 GB × $0.02 = **$2.00**
 
@@ -30,8 +32,8 @@ Disk 50 GB pd-ssd × 0.17 = 8.50. Total **$150.29**
 (2 × 0.0000025 + 1 × 0.0000025) × 2 × 2,628,000 s = **$39.42**
 
 **vulnerable/gke_insecure.tf**: fee 0.10 × 730 = 73.00. Regional cluster, 1 node per
-zone × 3 zones. `e2-standard-4`: (4 × 0.021811 + 16 × 0.002923) × 730 = 97.829, plus
-100 GB pd-balanced = 10.00, so 107.829 per node × 3 = 323.486. Total **$396.49**
+zone × 3 zones. `e2-standard-4`: (4 × 0.021812 + 16 × 0.002924) × 730 = 97.843, plus
+100 GB pd-balanced = 10.00, so 107.843 per node × 3 = 323.530. Total **$396.53**
 
 **clean/gcs_clean.tf**: 100 GB NEARLINE × 0.01 × 1.1 (europe-west1) = **$1.10**
 
@@ -40,19 +42,19 @@ zone × 3 zones. `e2-standard-4`: (4 × 0.021811 + 16 × 0.002923) × 730 = 97.8
 Total **$57.98**
 
 **clean/compute_clean.tf**: `e2-medium` = 1 vCPU, 4 GB.
-(0.021811 + 4 × 0.002923) × 730 = 24.457. Disk 20 GB pd-balanced = 2.00. Total **$26.46**
+(0.021812 + 4 × 0.002924) × 730 = 24.461. Disk 20 GB pd-balanced = 2.00. Total **$26.46**
 
 **clean/cloud_run_clean.tf**: min instances 0, so no fixed cost: **$0.00**
 
 **clean/gke_clean.tf**: fee 73.00 (default pool removed). Zonal pool, 2 nodes of
-`e2-standard-2`: (2 × 0.021811 + 8 × 0.002923) × 730 = 48.914, plus default 100 GB
-pd-balanced = 10.00, so 58.914 × 2 = 117.83. Total **$190.83**
+`e2-standard-2`: (2 × 0.021812 + 8 × 0.002924) × 730 = 48.922, plus default 100 GB
+pd-balanced = 10.00, so 58.922 × 2 = 117.843. Total **$190.84**
 
 **mixed/web_stack.tf**:
-- 2 × `e2-standard-2` in europe-west1: (0.067006 × 1.1 × 730 + 30 × 0.10 × 1.1) × 2 =
-  (53.806 + 3.30) × 2 = 114.21
+- 2 × `e2-standard-2` in europe-west1, exact regional prices:
+  ((2 × 0.023993 + 8 × 0.003216) × 730 + 30 × 0.10) × 2 = (53.811 + 3.00) × 2 = 113.62
 - `db-f1-micro` in europe-west1: 0.0105 × 1.1 × 730 + 10 × 0.17 × 1.1 = 8.432 + 1.87 = 10.30
 - 100 GB COLDLINE (location `EU` is not a region, so default region): 0.40
-- Total **$124.91**
+- Total **$124.32**
 
 The injection samples have no expected cost: they test security behaviour only.

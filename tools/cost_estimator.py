@@ -76,7 +76,8 @@ def estimate_cost(
     return CostEstimate(
         lines=lines,
         total_monthly_usd=round(sum(line.monthly_usd for line in lines), 2),
-        region=region,
+        default_region=region,
+        regions_used=sorted(context.regions_used),
         price_source=prices.source,
         prices_may_be_outdated=prices.may_be_outdated,
         notes=notes,
@@ -110,8 +111,10 @@ class _Context:
         self.prices = prices
         self.assumed_storage_gb = storage_gb
         self.notes: list[str] = []
+        self.regions_used: set[str] = set()
 
     def price(self, key: str, region: str) -> float:
+        self.regions_used.add(region)
         if not self.prices.knows_region(region):
             self.notes.append(
                 f"No prices for region '{region}': {self.prices.base_region} prices were used."
@@ -273,6 +276,10 @@ def _price_bucket(resource: Resource, context: _Context, assumptions: list[str])
     storage_class = (literal_str(attributes.get("storage_class")) or "STANDARD").lower()
     location = (literal_str(attributes.get("location")) or "").lower()
     region = location if _REGION.match(location) else context.default_region
+    if location and region != location:
+        assumptions.append(
+            f"Location '{location.upper()}' is a multi-region: priced as {region} (approximate)."
+        )
     assumptions.append(
         f"Assumed {context.assumed_storage_gb:g} GB stored ({storage_class.upper()}). "
         "Terraform does not say how much data a bucket holds."
