@@ -9,7 +9,7 @@ Last updated: 2026-11-10
 | 2 RAG | Done | 34 documents, 68 chunks, local embeddings |
 | 3 Memory | Done | SQLite store, feedback policy |
 | 4 Agent graph | Done | 10 nodes, rewrite loop capped at 2, interrupt for human review |
-| 5 Interfaces | Done | MCP tool and Streamlit UI |
+| 5 Interfaces | Done | MCP tool, and a Next.js web UI over an HTTP API (replaced Streamlit) |
 | 6 Evaluation | Done | Deterministic run, 3-model comparison with DeepEval and Ragas, MiMo ablations, graph against a ReAct baseline (all in `evals/results/`) |
 | 7 Documentation | Done | README results, charts and discussion written from the saved runs |
 
@@ -33,6 +33,10 @@ Last updated: 2026-11-10
   flushed progress output (decision 18).
 - Six-panel comparison charts for the models and for graph against ReAct.
 - Architecture review: `docs/reviews/architecture-2026-11-10.md`, with a status update.
+- Web UI rebuilt in Next.js (decision 19): review service, HTTP API, live progress
+  steps, an intro that says what the tool does and does not do. Streamlit removed.
+  Checked by clicking through it in a real browser.
+- README: run date and commit removed from the result source lines; first-person wording.
 
 ## Saved runs the README uses
 
@@ -56,6 +60,9 @@ OpenRouter spend for all runs: under $3 of the $5 budget.
 4. The ReAct baseline on more models and with harder injection samples.
 5. Check whether Turing College created a separate submission repository; the code is
    in my personal repository.
+6. Move the MCP server onto `agent/service.py`, so both front ends share one path.
+7. Generate the UI's TypeScript types from the Pydantic models instead of writing them
+   by hand.
 
 ## Verification at the time of writing
 

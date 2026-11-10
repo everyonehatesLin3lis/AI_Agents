@@ -149,24 +149,69 @@ paused graph is saved. *Fallback*: what a step does when its main path fails.
 ## Phase 5: Interfaces
 
 **What was built.** Two ways in. The **MCP server** exposes one tool,
-`review_gcp_infra`, that a coding agent can call. The **Streamlit UI** is for people:
-paste Terraform, read the report, give feedback.
+`review_gcp_infra`, that a coding agent can call. The **web UI** is for people: paste
+Terraform, watch the steps, read the report, give feedback. It was first built with
+Streamlit and later rebuilt with Next.js (see "The web UI" below).
 
 **Why MCP.** MCP (Model Context Protocol) is a standard way to give an AI assistant a
 tool. Any MCP client can use the reviewer without custom glue. The intended use is a
 coding agent calling the review on Terraform it has just written, before proposing to
 apply it. So one agent checks another agent's work.
 
-**Why the Developer section is separate.** Model, temperature and prompt additions are
-there for experiments. A normal user should not need them and should not change them
-by accident. Nothing in that section can change the security rules.
+**Why the advanced settings are separate.** The model, the documentation search switch
+and prompt additions are there for experiments. A normal user should not need them and
+should not change them by accident. Nothing in that section can change the security
+rules.
 
 **Error handling.** Both interfaces turn every failure into a clear message. The MCP
 tool returns `{"status": "rejected", "error": "..."}` and never a stack trace, because
 the caller is another program that has to explain the problem to its user.
 
-**What can break.** A paused review is held in memory, so restarting the UI loses it.
+**What can break.** A paused review is held in memory, so restarting the API loses it.
 The MCP tool waits for the whole review, which takes as long as the LLM calls take.
+
+### The web UI: from Streamlit to Next.js (2026-11-10)
+
+**What was built.** Three layers where there was one file:
+1. `agent/service.py`, the *review service*: start a review, finish it with feedback,
+   read and save project memory, list the examples, say what the tool supports.
+2. `api/server.py`, an HTTP API (FastAPI) that only translates: a request becomes one
+   service call, the result becomes JSON and a status code.
+3. `web/`, a Next.js app (React, TypeScript). The browser talks to the Next.js server,
+   which forwards `/api/*` to the Python API.
+
+**Why a service in the middle.** The Streamlit file was not only a screen. It also
+cached sessions, mapped errors to messages, built feedback items and saved project
+memory. A JavaScript front end cannot call Python objects, so all of that had to cross
+a network boundary. Putting it in one module first meant the HTTP layer stayed thin,
+and the logic could be tested without a web server or a browser.
+
+**How progress is shown live.** LangGraph can *stream*: it reports each node as it
+finishes. The service turns that into events, the API sends one JSON object per line
+(a format called NDJSON) as each event happens, and the browser reads the response as
+it arrives. So the page can show "Checked the security rules" while the model is still
+writing. One request, no polling.
+
+**A safety detail worth saying out loud.** Feedback names a finding by its *position*
+in the report, not by a key. The server looks the finding up itself, so a client cannot
+invent a finding to dismiss, and the server ignores feedback about security findings
+whatever is sent. The HTTP API has no login and listens on localhost only.
+
+**What went wrong, and what it taught.** All the component tests passed, and the first
+click on **Review** in a real browser crashed the page. The API left out empty fields
+(`estimated_savings` was missing, not `null`), while the UI's test data had the field.
+Both sides were tested, each against its own idea of the data. Three fixes: the API now
+sends the report whole, the UI tolerates a missing value, and a test compares the field
+names of the Python models with the TypeScript types. The lesson: tests on each side of
+a boundary do not test the boundary. Run the real thing once.
+
+**A second thing the real run showed.** The budget warning is made by code from the
+budget saved for the project, but the first version of the page listed it under "written
+by an AI model". Reading real output, not a fixture, is what caught it.
+
+**What was given up.** Two processes to start instead of one, and two languages. The
+TypeScript types are written by hand; the contract test catches a missing field, not a
+wrong type.
 
 ---
 

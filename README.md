@@ -5,7 +5,8 @@ security problems, estimates the monthly cost and suggests cheaper or simpler
 alternatives, with links to the Google Cloud documentation.
 
 - **Coding agents** (Claude Code and others) call it through an MCP tool.
-- **People** use it through a Streamlit UI.
+- **People** use it through a web UI (Next.js), which explains what the tool does and
+  shows each step of a review as it happens.
 
 This is my Turing College AI Engineering Sprint 3 project. I also treated it as a small
 research project: I measured the design choices, and every number in this file comes
@@ -152,13 +153,15 @@ that explains the fix.
 
 ## Setup
 
-Requirements: Python 3.11 or newer and [uv](https://docs.astral.sh/uv/).
+Requirements: Python 3.11 or newer with [uv](https://docs.astral.sh/uv/), and Node.js 20
+or newer with npm for the web UI.
 
 ```bash
-uv sync                          # install dependencies
+uv sync                          # install the Python dependencies
 cp .env.example .env             # then add your API key (see below)
 uv run python -m rag.ingest      # build the documentation store (first run downloads
                                  # a small local embedding model, about 80 MB)
+cd web && npm install            # install the web UI's dependencies
 ```
 
 `.env`:
@@ -178,21 +181,57 @@ uses `tools/prices_static.json` and adds "prices may be outdated" to the report.
 The default model is `google/gemini-3.5-flash-lite` through OpenRouter, chosen from the
 model comparison below. If you use `OPENAI_API_KEY` without OpenRouter, also set
 `REVIEW_MODEL` to an OpenAI model (for example `REVIEW_MODEL=gpt-5-mini`), or pick one
-in the Developer section of the UI.
+under Advanced settings in the UI.
 
 ## Usage
 
-### Streamlit UI
+### Web UI
+
+The UI is a Next.js app in `web/`. It talks to the agent through a small Python HTTP
+API, so two processes run, each in its own terminal:
 
 ```bash
-uv run streamlit run ui/app.py
+uv run python -m api.server                  # the agent's HTTP API, on 127.0.0.1:8000
+cd web && npm run build && npm run start     # the web UI, on http://localhost:3000
 ```
 
-Paste or upload a `.tf` file (or pick a sample), press **Review**, read the report,
-then rate the cost and sizing suggestions and press **Finish review**. The sidebar has
-two separate sections: **Project memory** (budget, region, preferences, remembered per
-project) and **Developer** (model, temperature, RAG switch, extra prompt instructions).
-The report shows the tokens used, the LLM cost and the time taken.
+Open http://localhost:3000. For development, `npm run dev` in place of the build and
+start commands reloads the page as files change.
+
+The first screen says what the tool does, which five services it covers, that it never
+touches a Google Cloud project, and what it does not do. Then:
+
+1. Paste or upload a `.tf` file, or pick an example, and press **Review**.
+2. While it runs, the page lists each step as it finishes: reading the file, the
+   security rules, the cost estimate, the documentation search, writing the report.
+3. Read the report. Each section says where it comes from: security findings from fixed
+   rules, the cost from list prices with its assumptions, suggestions from the AI model
+   with their source links.
+4. Rate the suggestions and press **Finish review**.
+
+The side panel has **Project memory** (budget, region, preferences, remembered per
+project) and, kept apart and closed by default, **Advanced settings** (AI model,
+documentation search on or off, extra instructions for the report writer). The report
+shows the tokens used, the AI cost and the time taken.
+
+![The web UI: what the tool does, and where to paste Terraform](docs/img/ui_intro.jpg)
+
+![A finished review in the web UI](docs/img/ui_report.jpg)
+
+How the pieces connect:
+
+```mermaid
+flowchart LR
+    B[Browser] --> N["Next.js server (web/)"]
+    N -- "/api/* forwarded" --> A["HTTP API (api/server.py)"]
+    C[Coding agent] --> M["MCP server (mcp_server/)"]
+    A --> S["Review service (agent/service.py)"]
+    S --> G["LangGraph agent"]
+    M --> G
+```
+
+The HTTP API has no login and listens on localhost only. It is meant to run on the same
+machine as the web UI, not to be exposed to a network.
 
 ### MCP tool (for coding agents)
 
@@ -263,10 +302,10 @@ calls the MCP tool `review_gcp_infra(terraform=..., project_id="shop")`. It gets
 file before showing it to the user. The structured `report` lets the agent check
 `severity == "critical"` without parsing text.
 
-**3. Project rules are remembered.** In the UI sidebar, under **Project memory**, set
+**3. Project rules are remembered.** In the UI's side panel, under **Project memory**, set
 the project `shop` to a budget of $100/month and region `europe-west1`. Every later
 review of `shop` prices resources without a region in `europe-west1` and adds a finding
-when the estimate is over budget. The same memory is used through the MCP tool when it
+when the estimate is over budget, shown in the cost section. The same memory is used through the MCP tool when it
 passes `project_id="shop"`.
 
 **4. Teach it what you do not care about.** After a review, mark a cost suggestion as
@@ -289,6 +328,7 @@ findings and the cost estimate, with a warning that the AI-written part is missi
 
 ```bash
 uv run pytest                       # unit and integration tests (no API key needed)
+cd web && npm test                  # web UI component tests (no servers needed)
 uv run ruff check . && uv run ruff format .
 uv run python -m evals.run          # run the eval suite, writes evals/results/
 uv run python -m evals.run --configs full,react --models google/gemini-3.5-flash-lite
@@ -685,7 +725,9 @@ agent/          graph, state, nodes (one file each), prompts (*.md), report asse
 tools/          tf_parser, security_rules, cost_estimator, billing_api, prices_static.json
 rag/            ingest.py, retriever.py, docs/ (notes on GCP documentation pages)
 memory/         SQLite store and the feedback policy
-ui/             Streamlit app
+agent/service.py  one interface for every front end: review, feedback, memory, samples
+api/            HTTP API (FastAPI) over the review service, used by the web UI
+web/            the web UI: Next.js, React, TypeScript; component tests with Vitest
 mcp_server/     MCP server exposing review_gcp_infra
 evals/          dataset/, run.py, report.py, results/, judge.py (DeepEval),
                 ragas_judge.py (Ragas), react_baseline.py (ReAct agent), rejudge.py

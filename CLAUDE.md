@@ -3,7 +3,7 @@
 An AI agent that reviews Terraform for Google Cloud **before** it is applied. It flags
 security issues, estimates monthly cost and suggests cheaper or simpler alternatives,
 citing GCP documentation. Coding agents like Claude Code call it through an MCP tool,
-and humans use it through a Streamlit UI.
+and humans use it through a web UI (Next.js) that talks to a small Python HTTP API.
 
 Turing College Sprint 3 project. The grading cares about **clear problem definition,
 understanding of agent concepts, error handling, security and documentation**, so the
@@ -55,7 +55,8 @@ can be measured should be measured, and the numbers must be reproducible.
 - LangGraph + `langchain-openai` (agent), Pydantic v2 (state and structured output)
 - `python-hcl2` (Terraform parsing)
 - Chroma (vector store for RAG), SQLite (memory, feedback, review history)
-- Streamlit (UI), MCP Python SDK / FastMCP (MCP server)
+- Next.js + React + TypeScript (web UI in `web/`), FastAPI (HTTP API in `api/`)
+- MCP Python SDK / FastMCP (MCP server)
 - LangSmith (tracing), DeepEval and Ragas (evaluation), pytest, ruff
 - `langchain` `create_agent` for the ReAct baseline in `evals/` only
 
@@ -64,7 +65,9 @@ can be measured should be measured, and the numbers must be reproducible.
 ```bash
 uv sync                                   # install dependencies
 uv run python -m rag.ingest               # build the vector store from rag/docs/
-uv run streamlit run ui/app.py            # run the UI
+uv run python -m api.server               # run the HTTP API the web UI needs (port 8000)
+cd web && npm run build && npm run start  # run the web UI (port 3000); `npm run dev` to develop
+cd web && npm test                        # web UI component tests
 uv run python -m mcp_server.server        # run the MCP server
 uv run pytest                             # unit + integration tests
 uv run python -m evals.run                # run the eval suite, writes evals/results/
@@ -93,7 +96,9 @@ agent/          LangGraph graph, state, nodes, prompts
 tools/          deterministic tools: tf_parser, security_rules, cost_estimator, billing_api
 rag/            ingest.py, retriever.py, docs/ (source GCP docs)
 memory/         project constraints + feedback store (SQLite)
-ui/             Streamlit app
+agent/service.py  the review service: the one interface every front end uses
+api/            FastAPI adapter over the review service (routes and status codes only)
+web/            Next.js web UI; talks only to /api, never to Python directly
 mcp_server/     MCP wrapper exposing review_gcp_infra
 evals/          dataset/ (Terraform samples + expected findings), run.py, results/
   judge.py           DeepEval: faithfulness and answer relevancy of the advisory text
@@ -138,8 +143,13 @@ parse → security_check → cost_estimate → plan_research
   fallback. If the Billing API fails, use `tools/prices_static.json` and add
   "prices may be outdated" to the report.
 - Never log or display API keys. Never commit `.env`.
-- Keep developer settings (model, temperature, system prompt) behind a separate
-  "Developer" section in the UI, away from the main user flow.
+- Keep the settings for experiments (model, documentation search, prompt additions)
+  behind a separate "Advanced settings" section in the UI, closed by default and away
+  from the main user flow.
+- The web UI talks only to the HTTP API, and the API only to `agent/service.py`. Do not
+  put decisions in a route or in a React component. The report's field names must match
+  on both sides: `tests/api/test_contract.py` checks it.
+- The HTTP API has no authentication and binds to localhost only. Do not expose it.
 - Track token usage and cost per review and show them in the UI.
 
 ## Code conventions
@@ -174,6 +184,9 @@ project level in `.claude/skills/`, unmodified, so they travel with the repo). P
 - MCP tool `review_gcp_infra`
 - `ragas_sample(report, resources_summary)` and `RagasJudge.score(report, ...)`
 - `run_react_review(terraform, deps) -> ReviewReport` (ReAct baseline)
+- `ReviewService` (`agent/service.py`): `stream_review`, `finish_review`, memory, samples
+- HTTP routes in `api/server.py`, with FastAPI's `TestClient`
+- Web UI components in `web/components/`, with Vitest; fake only `fetch`
 
 Mock only system boundaries: the LLM (fake chat model fixture), the Billing API client
 (injected) and time. Never mock our own tools or nodes. Use a small real Chroma

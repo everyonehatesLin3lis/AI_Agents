@@ -220,3 +220,21 @@ when the run started, so a commit made during a long run cannot mislabel it.
 
 **Given up.** Result files are larger. Files saved before this change cannot be judged
 again.
+
+## 19. A Next.js web UI over a review service and an HTTP API
+
+**Decision.** The Streamlit UI was replaced by a Next.js app in `web/`. It talks to a
+FastAPI adapter (`api/server.py`), which talks to one module, `agent/service.py`. The
+service holds everything a front end needs; the API and the UI decide nothing. A review
+is streamed as one JSON event per line so the page can show each step as it finishes.
+
+**Why.** I wanted a UI that explains what the tool does and shows what it is doing,
+and Next.js is the other option named in the project brief. A JavaScript front end
+cannot call Python, so the logic that lived inside the Streamlit file needed a home
+that an HTTP layer could wrap. One service module gives that logic a single place and
+a test surface that needs no server.
+
+**Given up.** Two processes and two languages instead of one. The UI's TypeScript
+types are written by hand, guarded by a test that compares field names with the Python
+models. The API has no authentication and must stay on localhost. The MCP server still
+calls `run_review` directly and has not been moved onto the service yet.
