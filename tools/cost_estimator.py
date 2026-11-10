@@ -114,15 +114,16 @@ class _Context:
         self.regions_used: set[str] = set()
 
     def price(self, key: str, region: str) -> float:
-        self.regions_used.add(region)
-        if not self.prices.knows_region(region):
-            self.notes.append(
-                f"No prices for region '{region}': {self.prices.base_region} prices were used."
-            )
+        """Unit price for `key`. Records the region whose prices were actually used."""
+        used = self.prices.effective_region(region)
         try:
-            return self.prices.unit_price(key, region)
+            price = self.prices.unit_price(key, used)
         except PriceNotFoundError as exc:
             raise UnpricedError(f"No price found for '{key}'.") from exc
+        if used != region:
+            self.notes.append(f"No prices for region '{region}': {used} prices were used.")
+        self.regions_used.add(used)
+        return price
 
     def machine_hour(self, machine_type: str, region: str) -> float:
         family, vcpus, memory_gb = machine_shape(machine_type)

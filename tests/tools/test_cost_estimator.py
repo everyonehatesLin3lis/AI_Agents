@@ -42,6 +42,24 @@ def test_estimate_separates_the_default_region_from_the_regions_actually_priced(
     assert any("'EU'" in note and "us-central1" in note for note in bucket.assumptions)
 
 
+def test_unknown_region_is_reported_as_the_region_whose_prices_were_used():
+    terraform = """
+resource "google_compute_instance" "vm" {
+  name         = "vm"
+  machine_type = "e2-medium"
+  zone         = "me-west1-a"
+  boot_disk {
+    initialize_params { image = "debian-12" }
+  }
+  network_interface { network = "default" }
+}
+"""
+    estimate = _estimate(terraform, "us-central1")
+
+    assert estimate.regions_used == ["us-central1"]
+    assert any("me-west1" in note and "us-central1" in note for note in estimate.notes)
+
+
 def test_static_prices_are_flagged_as_possibly_outdated():
     estimate = _estimate(COSTED[0].terraform)
 

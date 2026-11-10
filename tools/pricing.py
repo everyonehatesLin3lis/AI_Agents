@@ -34,8 +34,13 @@ class PriceTable(BaseModel):
     def knows_region(self, region: str) -> bool:
         return region in self.region_multipliers or region in self.regional_prices
 
+    def effective_region(self, region: str) -> str:
+        """The region whose prices are used: `region` itself, or the base region if unknown."""
+        return region if self.knows_region(region) else self.base_region
+
     def unit_price(self, key: str, region: str) -> float:
         """Price for `key` in `region`. Unknown regions are priced like the base region."""
+        region = self.effective_region(region)
         exact = self.regional_prices.get(region, {})
         if key in exact:
             return exact[key]

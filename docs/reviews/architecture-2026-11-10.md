@@ -438,3 +438,9 @@ The top recommendation still stands, with one change in timing: the MiMo run and
 three-model comparison were started before candidates 1 and 2 were done. Their numbers
 remain valid for the reasons in the table, so the runs do not need to be paid for again.
 Candidate 6 is the smallest and the only one that puts a wrong statement in a report.
+
+**Candidate 6 done** (after `bb90cfd`). `PriceTable.effective_region` is now the only
+place that decides which region's prices are used; `unit_price` and the estimator both
+go through it. `regions_used` records that region, only after the lookup succeeds, and
+the "No prices for region" note comes from the same value. Test:
+`test_unknown_region_is_reported_as_the_region_whose_prices_were_used`.

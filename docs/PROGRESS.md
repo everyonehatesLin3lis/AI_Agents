@@ -28,19 +28,18 @@ Last updated: 2026-11-10
 - `evals/report.py` takes the model comparison and the ablations from their own latest
   runs, each with its own source line.
 - Architecture review: `docs/reviews/architecture-2026-11-10.md`, with a status update.
+- Architecture candidate 6 done: `PriceTable.effective_region` is the one place that
+  decides which region's prices are used, and `regions_used` reports that region.
 
 ## What is left (optional)
 
-1. **Architecture candidate 6:** `regions_used` records the region asked for, not the
-   one whose prices were used. A VM in an unknown region (e.g. `me-west1`) shows
-   "priced in: me-west1" next to a note saying us-central1 prices were used.
-2. **Architecture candidates 1 and 2:** LLM fallbacks as structured data instead of
+1. **Architecture candidates 1 and 2:** LLM fallbacks as structured data instead of
    warning text; one place that calculates review cost.
-3. **A total deadline per LLM step.** One review waited 628 s (see README, Discussion).
-4. **The app default model** (`agent/config.py`, `openai/gpt-6-luna`) was not part of
+2. **A total deadline per LLM step.** One review waited 628 s (see README, Discussion).
+3. **The app default model** (`agent/config.py`, `openai/gpt-6-luna`) was not part of
    the evaluation. The evaluation favours `google/gemini-3.5-flash-lite` for the UI and
    MCP tool.
-5. A premium model in the comparison, and ablations on a second model.
+4. A premium model in the comparison, and ablations on a second model.
 
 ## Verification at the time of writing
 
