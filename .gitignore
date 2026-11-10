@@ -13,4 +13,3 @@ __pycache__/
 # local data built at runtime
 data/
 .deepeval/
-.streamlit/secrets.toml

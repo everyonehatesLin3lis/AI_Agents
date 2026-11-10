@@ -11,7 +11,7 @@ dependencies = [
     "pydantic>=2.7",           # state and every boundary model
     "python-hcl2>=4.3",        # Terraform (HCL2) parsing
     "chromadb>=0.5",           # local vector store for RAG
-    "streamlit>=1.38",         # human UI
+    # human UI
     "mcp>=1.2",                # MCP server (FastMCP) for coding agents
     "langsmith>=0.1",          # tracing
     "deepeval>=1.0",           # LLM-judged report quality metrics
