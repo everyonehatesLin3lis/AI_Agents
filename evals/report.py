@@ -12,6 +12,7 @@ Every table names the result file it came from, so each number can be traced.
 from __future__ import annotations
 
 import json
+import math
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -29,6 +30,7 @@ START, END = "<!-- RESULTS:START -->", "<!-- RESULTS:END -->"
 
 # Chart style: one hue for magnitude, quiet axes, values written on the bars.
 SURFACE, INK, MUTED, GRID, BAR = "#fcfcfb", "#0b0b0b", "#898781", "#e1e0d9", "#2a78d6"
+PANELS_PER_ROW = 3
 
 
 Result = tuple[Path, dict[str, Any]]
@@ -85,17 +87,26 @@ def table(headers: list[str], rows: list[list[Any]]) -> str:
 
 
 def bar_panels(path: Path, labels: list[str], panels: list[tuple[str, list[float | None], str]]):
-    """Small multiples of horizontal bars: one measure per panel, one shared label axis."""
-    height = 0.9 + 0.42 * len(labels)
-    figure, axes = plt.subplots(1, len(panels), figsize=(4.2 * len(panels), height), sharey=True)
-    axes = [axes] if len(panels) == 1 else list(axes)
+    """Small multiples of horizontal bars: one measure per panel, one shared label axis.
+
+    Each measure has its own scale, so each gets its own panel (never two scales on one
+    axis). Panels wrap into rows of `PANELS_PER_ROW`.
+    """
+    columns = min(PANELS_PER_ROW, len(panels))
+    rows = math.ceil(len(panels) / columns)
+    height = (0.9 + 0.42 * len(labels)) * rows
+    figure, grid = plt.subplots(
+        rows, columns, figsize=(4.2 * columns, height), sharey=True, squeeze=False
+    )
+    axes = list(grid.flat)
+    for unused in axes[len(panels) :]:
+        unused.set_visible(False)
     figure.patch.set_facecolor(SURFACE)
-    for axis, (title, values, fmt) in zip(axes, panels, strict=True):
+    for axis, (title, values, fmt) in zip(axes, panels, strict=False):
         shown = [v or 0.0 for v in values]
         axis.barh(labels, shown, color=BAR, height=0.55)
         axis.set_facecolor(SURFACE)
         axis.set_title(title, fontsize=10, color=INK, loc="left")
-        axis.invert_yaxis()
         is_score = fmt == "{:.2f}" and max(shown or [0]) <= 1  # shares and 0-1 scores
         top = 1.0 if is_score else max(shown or [1]) or 1.0
         axis.set_xlim(0, top * 1.45)  # room for the value labels
@@ -111,6 +122,7 @@ def bar_panels(path: Path, labels: list[str], panels: list[tuple[str, list[float
         for index, value in enumerate(values):
             text = "n/a" if value is None else fmt.format(value)
             axis.text(shown[index], index, f" {text}", va="center", fontsize=9, color=INK)
+    axes[0].invert_yaxis()  # first label on top; the y axis is shared, so invert it once
     figure.tight_layout()
     IMG_DIR.mkdir(parents=True, exist_ok=True)
     figure.savefig(path, dpi=160, facecolor=SURFACE)
@@ -189,7 +201,9 @@ def llm_section(path: Path, data: dict[str, Any]) -> str:
         [r["model"], r["n_ok"], r["security_recall"], r["security_precision"],
          r["critical_findings_on_clean"], r["injection_reviews_intact"],
          r["recommendations_per_review"], r["share_with_valid_source"],
-         r["faithfulness_mean"], r["answer_relevancy_mean"], r["llm_fallback_rate"]]
+         r["faithfulness_mean"], r["answer_relevancy_mean"],
+         r.get("ragas_context_precision_mean"), r.get("ragas_faithfulness_mean"),
+         r["llm_fallback_rate"]]
         for r in full
     ]  # fmt: skip
     speed = [
@@ -206,13 +220,21 @@ def llm_section(path: Path, data: dict[str, Any]) -> str:
         [
             ("Median latency per review (s)", [r["latency"]["median_s"] for r in full], "{:.1f} s"),
             ("LLM cost per review (USD)", [r["cost_usd_mean"] for r in full], "${:.5f}"),
-            ("Faithfulness (0 to 1)", [r["faithfulness_mean"] for r in full], "{:.2f}"),
+            ("Recommendations per review",
+             [r["recommendations_per_review"] for r in full], "{:.1f}"),
+            ("Share of recommendations with a source",
+             [r["share_with_valid_source"] for r in full], "{:.2f}"),
+            ("Ragas context precision (0 to 1)",
+             [r.get("ragas_context_precision_mean") for r in full], "{:.2f}"),
+            ("Ragas faithfulness (0 to 1)",
+             [r.get("ragas_faithfulness_mean") for r in full], "{:.2f}"),
         ],
-    )
+    )  # fmt: skip
     quality_headers = [
         "Model", "Reviews", "Security recall", "Security precision", "Critical on clean",
         "Injection intact", "Recs / review", "Share with source", "Faithfulness",
-        "Answer relevancy", "LLM fallback rate",
+        "Answer relevancy", "Ragas context precision", "Ragas faithfulness",
+        "LLM fallback rate",
     ]  # fmt: skip
     speed_headers = [
         "Model", "Median (s)", "p95 (s)", "Deterministic steps (s)", "LLM steps (s)",
@@ -226,7 +248,7 @@ def llm_section(path: Path, data: dict[str, Any]) -> str:
             table(quality_headers, quality),
             "**Speed and cost** (configuration `full`):",
             table(speed_headers, speed),
-            "![Latency, cost and faithfulness per model](docs/img/models.png)",
+            "![Speed, cost and recommendation quality per model](docs/img/models.png)",
             "**Median seconds per graph node:**",
             table(["Model", *nodes], node_rows),
         ]
@@ -301,11 +323,17 @@ def react_section(path: Path, data: dict[str, Any]) -> str:
         IMG_DIR / "react.png",
         labels,
         [
-            ("Security recall", [r["security_recall"] for r in rows], "{:.2f}"),
+            ("Security recall (0 to 1)", [r["security_recall"] for r in rows], "{:.2f}"),
+            ("Injection reviews intact (0 to 1)",
+             [r["injection_reviews_intact"] for r in rows], "{:.2f}"),
+            ("Share of recommendations with a source",
+             [r["share_with_valid_source"] for r in rows], "{:.2f}"),
             ("Median latency per review (s)", [r["latency"]["median_s"] for r in rows], "{:.1f} s"),
             ("LLM cost per review (USD)", [r["cost_usd_mean"] for r in rows], "${:.5f}"),
+            ("Ragas context precision (0 to 1)",
+             [r.get("ragas_context_precision_mean") for r in rows], "{:.2f}"),
         ],
-    )
+    )  # fmt: skip
     quality_headers = [
         "Agent", "Reviews ok / run", "Security recall", "Security precision",
         "Critical on clean", "Injection intact", "Security tool skipped", "Recs / review",
