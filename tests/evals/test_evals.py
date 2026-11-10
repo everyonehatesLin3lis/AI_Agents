@@ -191,3 +191,21 @@ def test_report_takes_comparison_and_ablations_from_their_own_latest_runs(tmp_pa
 
     assert comparison_run(tmp_path)[0].name == "20260102T000000Z_llm.json"
     assert ablation_run(tmp_path)[0].name == "20260101T000000Z_llm.json"
+
+
+def test_report_keeps_the_react_run_apart_from_the_comparison_and_the_ablations(tmp_path):
+    import json
+
+    from evals.report import ablation_run, comparison_run, react_run
+
+    files = {
+        "20260101T000000Z_llm.json": _llm_result(["a"], ["full", "no_rag"]),
+        "20260102T000000Z_llm.json": _llm_result(["a", "b", "c"], ["full"]),
+        "20260103T000000Z_llm.json": _llm_result(["a"], ["full", "react"]),
+    }
+    for name, data in files.items():
+        (tmp_path / name).write_text(json.dumps(data), encoding="utf-8")
+
+    assert react_run(tmp_path)[0].name == "20260103T000000Z_llm.json"
+    assert comparison_run(tmp_path)[0].name == "20260102T000000Z_llm.json"
+    assert ablation_run(tmp_path)[0].name == "20260101T000000Z_llm.json"

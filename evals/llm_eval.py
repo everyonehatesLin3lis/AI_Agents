@@ -7,6 +7,8 @@ Configurations (ablations):
 - `full`:        the agent as designed
 - `no_rag`:      documentation search switched off
 - `no_rewrite`:  search on, but the rewrite loop disabled (max_rewrites = 0)
+- `react`:       not the graph at all, but the ReAct baseline (evals/react_baseline.py):
+                 one LLM with function calling over the same tools
 """
 
 from __future__ import annotations
@@ -26,6 +28,7 @@ from evals.dataset_loader import Sample
 from evals.judge import Judge
 from evals.metrics import confusion, latency_stats, mean_or_none, share
 from evals.ragas_judge import RagasJudge
+from evals.react_baseline import run_react_review
 from rag.ingest import load_chunks
 from tools.models import Category, Severity
 from tools.tf_parser import parse_terraform
@@ -35,6 +38,8 @@ CONFIGS: dict[str, dict[str, Any]] = {
     "no_rag": {"use_rag": False},
     "no_rewrite": {"max_rewrites": 0},
 }
+REACT = "react"  # opt-in (`--configs full,react`): a different agent, not a graph setting
+JUDGED_CONFIGS = ("full", REACT)  # the judges cost money: only the configs being compared
 _URL = re.compile(r"https?://[^\s)\]>\"']+")
 _FALLBACK_MARKERS = ("unavailable", "default queries", "skipped", "failed")
 
@@ -78,6 +83,11 @@ def score_review(report: ReviewReport, sample: Sample, valid_urls: set[str]) -> 
         "n_untrusted_urls": len(untrusted),
         "n_evidence_docs": len(report.evidence),
         "rewrites": report.usage.calls_by_node.get("rewrite_query", 0),
+        "tool_calls": {
+            name.removeprefix("tool:"): count
+            for name, count in report.usage.calls_by_node.items()
+            if name.startswith("tool:")
+        },
         "llm_fallback": any(m in w for w in report.warnings for m in _FALLBACK_MARKERS),
         "latency_s": timings.get("total"),
         "deterministic_s": round(sum(timings.get(n, 0.0) for n in DETERMINISTIC_NODES), 4),
@@ -108,16 +118,19 @@ def run_llm_eval(
     records: list[dict[str, Any]] = []
     for model in models:
         for config in configs[model]:
-            deps = deps_factory(model, CONFIGS[config])
+            deps = deps_factory(model, CONFIGS.get(config, {}))
             for sample in samples:
                 for run in range(1, runs + 1):
                     record = {"model": model, "config": config, "file": sample.file,
                               "group": sample.group, "run": run}  # fmt: skip
                     try:
-                        report = run_review(sample.terraform, f"eval-{config}", deps=deps)
+                        if config == REACT:
+                            report = run_react_review(sample.terraform, deps)
+                        else:
+                            report = run_review(sample.terraform, f"eval-{config}", deps=deps)
                         record |= score_review(report, sample, valid_urls)
                         record["cost_usd"] = review_cost_usd(report, model, prices)
-                        if config == "full" and run == 1:  # judged once per sample: cost
+                        if config in JUDGED_CONFIGS and run == 1:  # once per sample: cost
                             summary = summarize_resources(parse_terraform(sample.terraform))
                             for scorer in (judge, ragas_judge):
                                 if scorer is not None:
@@ -174,6 +187,10 @@ def summarize(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     len(injection),
                 ),  # fmt: skip
                 "untrusted_urls": sum(r["n_untrusted_urls"] for r in ok),
+                # Only meaningful for `react`, where calling the tool is the model's choice.
+                "security_tool_skipped": sum(
+                    1 for r in ok if config == REACT and not r["tool_calls"].get("check_security")
+                ),
                 "recommendations_per_review": round(recommendations / len(ok), 2),
                 "share_with_valid_source": share(
                     sum(r["n_with_valid_source"] for r in ok), recommendations

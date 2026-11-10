@@ -3,8 +3,8 @@
     uv run python -m evals.report
 
 Reads the newest `*_deterministic.json` in evals/results/, the newest `*_llm.json` with
-the `full` configuration (model comparison) and the newest with several configurations
-(ablations). Writes the
+the graph agent alone (model comparison), the newest with a graph ablation, and the
+newest that includes the ReAct baseline. Writes the
 charts to docs/img/ and replaces the block between the RESULTS markers in README.md.
 Every table names the result file it came from, so each number can be traced.
 """
@@ -49,18 +49,28 @@ def _configs(data: dict[str, Any]) -> set[str]:
     return {row["config"] for row in data["summary"] if row.get("n_ok")}
 
 
+ABLATIONS = {"no_rag", "no_rewrite"}
+REACT = "react"
+
+# The three LLM sections can come from different runs. Each is paid for once: the
+# ablations on one model, the ReAct baseline on one model, the comparison on several.
+
+
 def comparison_run(results_dir: Path = RESULTS_DIR) -> Result | None:
-    """Newest LLM run with the `full` configuration: the model comparison."""
-    return latest("llm", results_dir, lambda data: "full" in _configs(data))
+    """Newest run of the graph agent alone (`full`, no baseline): the model comparison."""
+    return latest(
+        "llm", results_dir, lambda data: "full" in _configs(data) and REACT not in _configs(data)
+    )
 
 
 def ablation_run(results_dir: Path = RESULTS_DIR) -> Result | None:
-    """Newest LLM run with more than one configuration: the ablations.
+    """Newest run with a graph ablation (`no_rag` or `no_rewrite`)."""
+    return latest("llm", results_dir, lambda data: bool(ABLATIONS & _configs(data)))
 
-    The two can come from different runs: ablations are paid for once, on one model,
-    while the model comparison can be rerun with other models.
-    """
-    return latest("llm", results_dir, lambda data: len(_configs(data)) > 1)
+
+def react_run(results_dir: Path = RESULTS_DIR) -> Result | None:
+    """Newest run that includes the ReAct baseline next to the graph agent."""
+    return latest("llm", results_dir, lambda data: REACT in _configs(data))
 
 
 def table(headers: list[str], rows: list[list[Any]]) -> str:
@@ -258,6 +268,72 @@ def ablation_section(path: Path, data: dict[str, Any]) -> str:
     )
 
 
+def react_section(path: Path, data: dict[str, Any]) -> str:
+    meta = data["meta"]
+    first = meta["models"][0]
+    rows = [
+        r
+        for r in data["summary"]
+        if r.get("n_ok") and r["model"] == first and r["config"] in ("full", REACT)
+    ]
+    names = {"full": "Graph agent", REACT: "ReAct baseline"}
+    labels = [names[r["config"]] for r in rows]
+    quality = [
+        [names[r["config"]], f"{r['n_ok']} / {r['n_reviews']}", r["security_recall"],
+         r["security_precision"], r["critical_findings_on_clean"], r["injection_reviews_intact"],
+         "n/a" if r["config"] == "full" else r["security_tool_skipped"],
+         r["recommendations_per_review"], r["share_with_valid_source"], r["untrusted_urls"]]
+        for r in rows
+    ]  # fmt: skip
+    judged = [
+        [names[r["config"]], r["n_judged"], r["faithfulness_mean"], r["answer_relevancy_mean"],
+         r.get("n_ragas_judged"), r.get("ragas_context_precision_mean"),
+         r.get("ragas_faithfulness_mean")]
+        for r in rows
+    ]  # fmt: skip
+    speed = [
+        [names[r["config"]], r["latency"]["median_s"], r["latency"]["p95_s"],
+         r["llm_calls_mean"], r["input_tokens_mean"], r["output_tokens_mean"],
+         _usd(r["cost_usd_mean"])]
+        for r in rows
+    ]  # fmt: skip
+    bar_panels(
+        IMG_DIR / "react.png",
+        labels,
+        [
+            ("Security recall", [r["security_recall"] for r in rows], "{:.2f}"),
+            ("Median latency per review (s)", [r["latency"]["median_s"] for r in rows], "{:.1f} s"),
+            ("LLM cost per review (USD)", [r["cost_usd_mean"] for r in rows], "${:.5f}"),
+        ],
+    )
+    quality_headers = [
+        "Agent", "Reviews ok / run", "Security recall", "Security precision",
+        "Critical on clean", "Injection intact", "Security tool skipped", "Recs / review",
+        "Share with source", "Links outside the store",
+    ]  # fmt: skip
+    judged_headers = [
+        "Agent", "Reviews judged (DeepEval)", "Faithfulness", "Answer relevancy",
+        "Reviews judged (Ragas)", "Ragas context precision", "Ragas faithfulness",
+    ]  # fmt: skip
+    speed_headers = [
+        "Agent", "Median (s)", "p95 (s)", "LLM calls", "Input tokens", "Output tokens",
+        "USD / review",
+    ]  # fmt: skip
+    return "\n\n".join(
+        [
+            f"### Graph agent against a ReAct baseline ({first})",
+            _source(path, meta),
+            "**Security and recommendations:**",
+            table(quality_headers, quality),
+            "**Judged quality** (DeepEval on the whole advisory text, Ragas on the RAG step):",
+            table(judged_headers, judged),
+            "**Speed and cost:**",
+            table(speed_headers, speed),
+            "![Graph agent against the ReAct baseline](docs/img/react.png)",
+        ]
+    )
+
+
 LLM_PENDING = (
     "### Full agent, per model\n\n"
     "**Not run yet.** No result file exists for the LLM evaluation, so there are no numbers "
@@ -279,6 +355,8 @@ def build() -> str:
     parts.append(llm_section(*comparison) if comparison else LLM_PENDING)
     if ablations := ablation_run():
         parts.append(ablation_section(*ablations))
+    if react := react_run():
+        parts.append(react_section(*react))
     return "\n\n".join(parts)
 
 
