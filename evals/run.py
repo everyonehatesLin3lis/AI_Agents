@@ -56,11 +56,13 @@ def git_info() -> dict[str, Any]:
     return {"commit": commit or "no commits yet", "dirty": bool(git("status", "--porcelain"))}
 
 
-def metadata(kind: str) -> dict[str, Any]:
+def metadata(kind: str, git: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Facts about a run. Pass the `git` state captured when the run started: a long run
+    must be labelled with the code it used, not with a commit made while it was running."""
     return {
         "kind": kind,
         "date_utc": datetime.now(UTC).isoformat(timespec="seconds"),
-        "git": git_info(),
+        "git": git_info() if git is None else git,
         "python": platform.python_version(),
         "platform": platform.platform(),
     }
@@ -110,7 +112,7 @@ def make_deps_factory(base: Settings, memory_dir: Path):
     return factory
 
 
-def run_llm_part(args: argparse.Namespace, base: Settings) -> Path | None:
+def run_llm_part(args: argparse.Namespace, base: Settings, git: dict[str, Any]) -> Path | None:
     provider = resolve_provider()
     if provider is None:
         print("No OPENROUTER_API_KEY or OPENAI_API_KEY set: skipping the LLM evaluation.")
@@ -136,7 +138,7 @@ def run_llm_part(args: argparse.Namespace, base: Settings) -> Path | None:
         )  # fmt: skip
     payload = {
         "meta": {
-            **metadata("llm"),
+            **metadata("llm", git),
             "provider": provider.name,
             "models": models,
             "configs": configs,
@@ -173,6 +175,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repeats", type=int, default=20, help="tool timing repetitions")
     args = parser.parse_args(argv)
 
+    git = git_info()  # before any work: the code this run uses
     base = Settings.from_env()
     if not base.chroma_dir.exists():
         print("Building the documentation store first…")
@@ -180,14 +183,14 @@ def main(argv: list[str] | None = None) -> int:
 
     if not args.llm_only:
         result = run_deterministic(base.chroma_dir, args.repeats)
-        path = save("deterministic", {"meta": metadata("deterministic"), **result})
+        path = save("deterministic", {"meta": metadata("deterministic", git), **result})
         security = result["security"]["overall"]
         print(f"Deterministic results saved to {path}")
         print(f"  security precision {security['precision']}, recall {security['recall']}, "
               f"critical false positives on clean: "
               f"{result['security']['critical_false_positives_on_clean']}")  # fmt: skip
     if not args.deterministic_only:
-        path = run_llm_part(args, base)
+        path = run_llm_part(args, base, git)
         if path:
             print(f"LLM results saved to {path}")
     return 0

@@ -209,3 +209,14 @@ def test_report_keeps_the_react_run_apart_from_the_comparison_and_the_ablations(
     assert react_run(tmp_path)[0].name == "20260103T000000Z_llm.json"
     assert comparison_run(tmp_path)[0].name == "20260102T000000Z_llm.json"
     assert ablation_run(tmp_path)[0].name == "20260101T000000Z_llm.json"
+
+
+def test_result_metadata_carries_the_commit_captured_when_the_run_started():
+    from evals.run import metadata
+
+    at_start = {"commit": "abc123", "dirty": False}
+
+    meta = metadata("llm", at_start)  # built at the end of a run, after later commits
+
+    assert meta["git"] == at_start
+    assert meta["kind"] == "llm"

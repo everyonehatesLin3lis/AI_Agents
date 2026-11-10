@@ -25,9 +25,9 @@ from agent.runner import run_review
 from agent.state import ReviewReport
 from agent.summary import summarize_resources
 from evals.dataset_loader import Sample
-from evals.judge import Judge
+from evals.judge import Judge, advisory_text, judge_context
 from evals.metrics import confusion, latency_stats, mean_or_none, share
-from evals.ragas_judge import RagasJudge
+from evals.ragas_judge import RagasJudge, ragas_sample
 from evals.react_baseline import run_react_review
 from rag.ingest import load_chunks
 from tools.models import Category, Severity
@@ -99,6 +99,24 @@ def score_review(report: ReviewReport, sample: Sample, valid_urls: set[str]) -> 
     }
 
 
+def judge_input(report: ReviewReport, resources_summary: list[dict]) -> dict[str, Any]:
+    """The text the judges are given. It is saved in the record, so a result file can be
+    judged again by another judge (evals/rejudge.py) without paying for the reviews."""
+    sample = ragas_sample(report, resources_summary)
+    return {
+        "user_input": sample.user_input,
+        "advisory_text": advisory_text(report),
+        "judge_context": judge_context(report),
+        "rag_advice": sample.response,
+        "retrieved_contexts": sample.retrieved_contexts,
+    }
+
+
+def print_progress(line: str) -> None:
+    """Print one progress line at once, also when the output goes to a file."""
+    print(line, flush=True)
+
+
 def run_llm_eval(
     models: list[str],
     configs: dict[str, list[str]],
@@ -108,7 +126,7 @@ def run_llm_eval(
     prices: Prices,
     judge: Judge | None = None,
     ragas_judge: RagasJudge | None = None,
-    progress: Callable[[str], None] = print,
+    progress: Callable[[str], None] = print_progress,
 ) -> list[dict[str, Any]]:
     """Run every (model, config, sample, run) combination and return one record each.
 
@@ -132,6 +150,7 @@ def run_llm_eval(
                         record["cost_usd"] = review_cost_usd(report, model, prices)
                         if config in JUDGED_CONFIGS and run == 1:  # once per sample: cost
                             summary = summarize_resources(parse_terraform(sample.terraform))
+                            record["judge_input"] = judge_input(report, summary)
                             for scorer in (judge, ragas_judge):
                                 if scorer is not None:
                                     record |= scorer.score(report, summary)

@@ -9,7 +9,6 @@ findings and the summary are left out on purpose, because they do not come from 
 
 from __future__ import annotations
 
-import json
 import os
 from typing import Any
 
@@ -21,7 +20,7 @@ from ragas.llms import LangchainLLMWrapper  # noqa: E402
 from ragas.metrics import Faithfulness, LLMContextPrecisionWithoutReference  # noqa: E402
 
 from agent.state import ReviewReport  # noqa: E402
-from evals.judge import TASK  # noqa: E402
+from evals.judge import task_input  # noqa: E402
 from tools.models import Category  # noqa: E402
 
 
@@ -37,7 +36,7 @@ def rag_advice(report: ReviewReport) -> str:
 def ragas_sample(report: ReviewReport, resources_summary: list[dict]) -> SingleTurnSample:
     """One Ragas sample: the task, the retrieved passages and the advice built on them."""
     return SingleTurnSample(
-        user_input=f"{TASK}\nResources: {json.dumps(resources_summary)}",
+        user_input=task_input(resources_summary),
         retrieved_contexts=[f"{doc.title}. {doc.text}" for doc in report.evidence],
         response=rag_advice(report),
     )
@@ -56,8 +55,11 @@ class RagasJudge:
         self._llm = LangchainLLMWrapper(chat_model)
 
     def score(self, report: ReviewReport, resources_summary: list[dict]) -> dict[str, Any]:
+        return self.score_sample(ragas_sample(report, resources_summary))
+
+    def score_sample(self, sample: SingleTurnSample) -> dict[str, Any]:
+        """Score a sample that is already built, for example from a saved eval record."""
         result: dict[str, Any] = {key: None for key, _ in self.METRICS} | {"ragas_error": None}
-        sample = ragas_sample(report, resources_summary)
         if not sample.retrieved_contexts or not sample.response:
             return result | {"ragas_error": "nothing to judge"}
         for key, metric_class in self.METRICS:

@@ -158,3 +158,42 @@ def test_eval_loop_records_and_summarises_ragas_scores(make_deps, make_llm):
     assert row["ragas_faithfulness_mean"] == 1.0
     assert row["ragas_context_precision_mean"] == 1.0
     assert row["n_ragas_judged"] == 1
+
+
+def _one_judged_run(make_deps, make_llm, ragas_judge=None):
+    llm = make_llm(
+        {"PLAN_RESEARCH": PLAN, "GRADE_DOCS": _keep_ha_docs, "WRITE_REPORT": _recommend_zonal}
+    )
+    return run_llm_eval(
+        models=["fake-model"],
+        configs={"fake-model": ["full"]},
+        runs=1,
+        samples=[SQL_OPEN],
+        deps_factory=lambda model, overrides: make_deps(llm, **overrides),
+        prices={},
+        ragas_judge=ragas_judge,
+        progress=lambda line: None,
+    )
+
+
+def test_judged_records_keep_the_text_that_was_judged(make_deps, make_llm):
+    record = _one_judged_run(make_deps, make_llm)[0]
+
+    saved = record["judge_input"]
+    assert "Use ZONAL availability if this is not production." in saved["rag_advice"]
+    assert "One highly available PostgreSQL instance" in saved["advisory_text"]
+    assert saved["retrieved_contexts"] and saved["judge_context"]
+    assert "google_sql_database_instance" in saved["user_input"]
+
+
+def test_saved_records_can_be_judged_again_without_running_a_review(make_deps, make_llm):
+    from evals.rejudge import rejudge
+
+    records = _one_judged_run(make_deps, make_llm)  # saved with no judge at all
+    assert "ragas_faithfulness" not in records[0]
+
+    judged = rejudge(records, ragas_judge=RagasJudge(AgreeingRagasJudge(prompts=[]), "new-judge"))
+
+    assert judged[0]["ragas_faithfulness"] == 1.0
+    assert judged[0]["ragas_context_precision"] == 1.0
+    assert "ragas_faithfulness" not in records[0]  # the saved records are not changed

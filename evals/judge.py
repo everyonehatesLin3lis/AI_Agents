@@ -35,6 +35,11 @@ TASK = (
 )
 
 
+def task_input(resources_summary: list[dict]) -> str:
+    """The question both judges are given: the task and the resources under review."""
+    return f"{TASK}\nResources: {json.dumps(resources_summary)}"
+
+
 class ChatModelJudge(DeepEvalBaseLLM):
     """Adapts a LangChain chat model to the interface DeepEval expects."""
 
@@ -93,8 +98,12 @@ class Judge:
 
     def score(self, report: ReviewReport, resources_summary: list[dict]) -> dict[str, Any]:
         """Return both scores, or an error string. Never raises."""
-        text = advisory_text(report)
-        context = judge_context(report)
+        return self.score_text(
+            task_input(resources_summary), advisory_text(report), judge_context(report)
+        )
+
+    def score_text(self, user_input: str, text: str, context: list[str]) -> dict[str, Any]:
+        """Score text that is already extracted, for example from a saved eval record."""
         if not text or not context:
             return {
                 "faithfulness": None,
@@ -102,7 +111,7 @@ class Judge:
                 "judge_error": "nothing to judge",
             }
         case = LLMTestCase(
-            input=f"{TASK}\nResources: {json.dumps(resources_summary)}",
+            input=user_input,
             actual_output=text,
             retrieval_context=context,
         )
