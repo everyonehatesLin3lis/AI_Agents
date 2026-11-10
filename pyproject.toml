@@ -21,6 +21,7 @@ dependencies = [
     "ragas>=0.4.3",            # RAG-step metrics: context precision, faithfulness
     # ragas 0.4.3 imports a Vertex AI module that langchain-community 0.4.2 removed
     "langchain-community>=0.4,<0.4.2",
+    "fastapi>=0.162.3",        # HTTP API between the agent and the Node.js UI
 ]
 
 [dependency-groups]

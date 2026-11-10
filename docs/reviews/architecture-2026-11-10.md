@@ -444,3 +444,105 @@ place that decides which region's prices are used; `unit_price` and the estimato
 go through it. `regions_used` records that region, only after the lookup succeeds, and
 the "No prices for region" note comes from the same value. Test:
 `test_unknown_region_is_reported_as_the_region_whose_prices_were_used`.
+
+---
+
+## Second review (same day): replacing the Streamlit UI with a Node.js UI
+
+Direction for this pass: the UI should be Node.js, not Streamlit, and it
+should tell the user what the tool does. Scope of this pass: `ui/app.py`,
+`agent/runner.py` (`ReviewSession`), `mcp_server/server.py`, `memory/store.py`.
+
+### What the current UI really does
+
+`ui/app.py` (314 lines) is not only a screen. It holds application logic that exists
+nowhere else:
+
+| In `ui/app.py` | What it is |
+|---|---|
+| `get_session` | One `ReviewSession` per distinct settings, cached for the process |
+| `run_review_clicked` | Maps `TerraformInputError` and any other exception to a message |
+| `feedback_form` | Builds `FeedbackItem`s from `Finding.feedback_key`, drops "no feedback" |
+| `project_memory` | Reads and saves `ProjectConstraints` through `session.deps.store` |
+| `terraform_input` | Lists the sample files, checks the upload size |
+| `main` | Decides whether the LLM is configured and whether a review is still waiting |
+
+A Node.js front end cannot call Python objects. Everything in that table has to cross a
+network **seam**, and today there is none: the **interface** a front end needs exists
+only implicitly, inside one Streamlit file. `mcp_server/server.py` has a second, smaller
+copy of part of it (`review`: validate, run, map errors to a status).
+
+### Candidate 8: a review service module behind one interface
+
+**Recommendation strength: `Strong`** (the Node.js UI cannot be built without it)
+
+**Files:** new `agent/service.py`; `ui/app.py` (removed or reduced), `mcp_server/server.py`,
+`agent/runner.py`, `memory/store.py`
+
+**Problem.** Rebuilding the UI in Node.js with the code as it is would mean writing the
+table above a second time, inside HTTP handlers. Then three places (Streamlit, HTTP,
+MCP) would each decide how a bad input, a missing API key or a finished review is
+reported.
+
+**Solution.** One *review service* **module** with a small interface: start a review,
+finish it with feedback, read and save a project's memory, list the samples, and
+describe what the tool can do (services, limits, whether an LLM is configured). It
+returns plain data and named error results, never exceptions for expected cases. The
+HTTP API and the MCP server become thin **adapters** over it.
+
+**Benefits.**
+- *Locality:* "what happens on bad input" has one answer. The security guarantee is not
+  touched: the service calls the same `ReviewSession`.
+- *Leverage:* the Node.js UI, the MCP tool and the tests all use the same interface.
+- *Tests:* the interface is the test surface. Service tests need no web server and no
+  browser; HTTP tests only check the mapping to status codes.
+
+```mermaid
+flowchart LR
+  subgraph Before
+    ST["ui/app.py (Streamlit)<br/>screen + session cache + error mapping<br/>+ feedback building + memory + samples"] --> RS[ReviewSession]
+    ST --> MS[(MemoryStore)]
+    MCP["mcp_server: review()<br/>validate + error mapping"] --> RR[run_review]
+  end
+```
+
+```mermaid
+flowchart LR
+  subgraph After
+    WEB["Node.js UI<br/>(screen only)"] -->|HTTP JSON| API["HTTP adapter<br/>(routes + status codes)"]
+    API --> SVC["Review service<br/>start, finish, memory,<br/>samples, capabilities"]
+    MCP2[MCP adapter] --> SVC
+    SVC --> RS2[ReviewSession]
+    SVC --> MS2[(MemoryStore)]
+  end
+```
+
+Two adapters exist from the first day (HTTP and MCP), so the seam is real, not
+hypothetical.
+
+### Candidate 9: the report as the contract between Python and the Node.js UI
+
+**Recommendation strength: `Worth exploring`** (supersedes candidate 7)
+
+**Files:** `agent/state.py` (`ReviewReport`), `agent/report.py` (`render_markdown`),
+the new Node.js UI
+
+**Problem.** Candidate 7 noted that the Markdown renderer and the Streamlit UI drift
+apart. With a Node.js UI the second renderer moves to another language, so drift is
+harder to see: a new report field appears in the Markdown and silently not in the UI.
+
+**Solution.** Treat the JSON form of `ReviewReport` as the contract. Generate the
+TypeScript types from its JSON Schema (Pydantic produces it), so a changed field is a
+compile error in the UI, not a silent gap.
+
+**Benefits.** *Locality* of the report's shape in one model. A contract test compares
+the committed schema with the model.
+
+### Decisions still open
+
+- The Node.js framework, and whether Streamlit is removed or kept next to it.
+- What "tell the user what it does" should contain.
+- Where the tests go (the TDD seams).
+
+A new HTTP dependency (FastAPI) is needed for any Node.js front end; it has to be named
+in the commit message that adds it.

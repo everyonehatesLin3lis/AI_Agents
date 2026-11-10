@@ -11,6 +11,7 @@ into the initial state, and attach the timings to the report.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterator
 from typing import Any
 
 from dotenv import load_dotenv
@@ -76,11 +77,27 @@ class ReviewSession:
 
     def start(self, terraform: str, project_id: str = "default") -> ReviewReport:
         """Run until the human review step and return the report to show."""
+        report = None
+        for item in self.start_steps(terraform, project_id):
+            report = item
+        assert isinstance(report, ReviewReport)
+        return report
+
+    def start_steps(
+        self, terraform: str, project_id: str = "default"
+    ) -> Iterator[str | ReviewReport]:
+        """Like `start`, but yields the name of each graph node as it finishes, and the
+        report last. A front end uses the names to show progress while it waits."""
         validate_terraform_input(terraform)
         state = _initial_state(terraform, project_id, self.deps, interactive=True)
+        config = self._config(state.review_id)
         start = self.deps.clock()
-        values = self._graph.invoke(state, self._config(state.review_id))
-        return _finalize(values, self.deps.clock() - start)
+        for update in self._graph.stream(state, config, stream_mode="updates"):
+            for node in update:
+                if not node.startswith("__"):  # "__interrupt__" is the pause, not a step
+                    yield node
+        values = self._graph.get_state(config).values
+        yield _finalize(values, self.deps.clock() - start)
 
     def is_waiting(self, review_id: str) -> bool:
         return bool(self._graph.get_state(self._config(review_id)).next)
