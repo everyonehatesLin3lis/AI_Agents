@@ -16,15 +16,23 @@ can be measured should be measured, and the numbers must be reproducible.
 
 - **Models:** the model is a config value, never hard-coded. Run the eval suite on
   several models (at least three, including one small/cheap one) and compare them.
+  Evaluated so far: `xiaomi/mimo-v2.6-flash`, `deepseek/deepseek-v4-flash` and
+  `google/gemini-3.5-flash-lite` (the app default), judged by `openai/gpt-5-mini`.
+- **Before any paid eval run, confirm the models, the judge model and the budget with
+  the project owner.** A judge chosen without asking had to be replaced, and that run's
+  judged scores can now only be reported as indicative.
 - **Quality metrics:** security finding precision, recall and F1, critical false
   positives on clean samples, cost-estimate error against hand-calculated values,
   RAG retrieval hit rate, share of recommendations with a valid `source_url`, and
-  DeepEval faithfulness / answer relevancy for the report.
+  DeepEval faithfulness / answer relevancy for the report, and Ragas context
+  precision / faithfulness for the RAG step.
 - **Speed tests:** end-to-end latency per review (median and p95), latency per graph
   node, and time for the deterministic tools alone versus the LLM steps.
 - **Cost metrics:** input/output tokens and USD cost per review, per model.
 - **Ablations where cheap:** with vs without RAG, with vs without the `rewrite_query`
   loop, so the report can say what each part adds.
+- **Baseline:** the graph agent is compared with a ReAct agent over the same tools
+  (`evals/react_baseline.py`). The baseline is never used by the UI or the MCP tool.
 - **Reproducibility:** fixed dataset in `evals/dataset/`, fixed temperature and seed
   where the API allows, several runs per configuration, raw results saved to
   `evals/results/` with the model name, date and git commit.
@@ -48,7 +56,8 @@ can be measured should be measured, and the numbers must be reproducible.
 - `python-hcl2` (Terraform parsing)
 - Chroma (vector store for RAG), SQLite (memory, feedback, review history)
 - Streamlit (UI), MCP Python SDK / FastMCP (MCP server)
-- LangSmith (tracing), DeepEval (evaluation), pytest, ruff
+- LangSmith (tracing), DeepEval and Ragas (evaluation), pytest, ruff
+- `langchain` `create_agent` for the ReAct baseline in `evals/` only
 
 ## Commands
 
@@ -87,8 +96,15 @@ memory/         project constraints + feedback store (SQLite)
 ui/             Streamlit app
 mcp_server/     MCP wrapper exposing review_gcp_infra
 evals/          dataset/ (Terraform samples + expected findings), run.py, results/
+  judge.py           DeepEval: faithfulness and answer relevancy of the advisory text
+  ragas_judge.py     Ragas: context precision and faithfulness of the RAG step
+  react_baseline.py  ReAct agent with function calling, for comparison only
+  prompts/           prompts used only by the evals
+  report.py          builds the README tables and charts from saved results
 tests/          pytest tests mirroring the package layout
 docs/           architecture notes, learning notes, decisions
+  examples/     real saved review output used in the README
+  reviews/      architecture reviews, one file per date
 ```
 
 ## Agent architecture
@@ -156,12 +172,14 @@ project level in `.claude/skills/`, unmodified, so they travel with the repo). P
 - `search_gcp_docs(query, service) -> list[Doc]`
 - `run_review(terraform, project_id) -> ReviewReport` (full graph)
 - MCP tool `review_gcp_infra`
+- `ragas_sample(report, resources_summary)` and `RagasJudge.score(report, ...)`
+- `run_react_review(terraform, deps) -> ReviewReport` (ReAct baseline)
 
 Mock only system boundaries: the LLM (fake chat model fixture), the Billing API client
 (injected) and time. Never mock our own tools or nodes. Use a small real Chroma
 collection and a temporary SQLite file in tests. Expected values come from
 `evals/dataset/` or hand-calculated literals. LLM quality is measured in evals
-(DeepEval), not in pytest.
+(DeepEval and Ragas), not in pytest.
 
 **to-tickets**
 - Tracker: local files in `docs/tickets/NN-slug.md`.
