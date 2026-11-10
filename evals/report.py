@@ -6,7 +6,8 @@ Reads the newest `*_deterministic.json` in evals/results/, the newest `*_llm.jso
 the graph agent alone (model comparison), the newest with a graph ablation, and the
 newest that includes the ReAct baseline. Writes the
 charts to docs/img/ and replaces the block between the RESULTS markers in README.md.
-Every table names the result file it came from, so each number can be traced.
+Every table names the result file it came from, so each number can be traced. The run
+date and git commit are in that file's `meta`, not repeated in the README.
 """
 
 from __future__ import annotations
@@ -135,7 +136,6 @@ def bar_panels(path: Path, labels: list[str], panels: list[tuple[str, list[float
 def deterministic_section(path: Path, data: dict[str, Any]) -> str:
     security, cost, retrieval = data["security"], data["cost"], data["retrieval"]
     latency = data["tool_latency"]
-    meta = data["meta"]
     groups = [
         [group, s["true_positives"], s["false_positives"], s["false_negatives"],
          s["precision"], s["recall"], s["f1"]]
@@ -160,8 +160,7 @@ def deterministic_section(path: Path, data: dict[str, Any]) -> str:
     return "\n\n".join(
         [
             "### Deterministic parts (no LLM)",
-            f"Source: `evals/results/{path.name}` (run {meta['date_utc']}, "
-            f"git commit: {meta['git']['commit']}). {data['n_samples']} samples.",
+            f"Source: `evals/results/{path.name}`. {data['n_samples']} samples.",
             "**Security rules** (a finding is a `(resource, rule)` pair):",
             table(["Group", "TP", "FP", "FN", "Precision", "Recall", "F1"], groups),
             f"Critical false positives on the clean samples: "
@@ -183,8 +182,8 @@ def deterministic_section(path: Path, data: dict[str, Any]) -> str:
 
 def _source(path: Path, meta: dict[str, Any]) -> str:
     return (
-        f"Source: `evals/results/{path.name}` (run {meta['date_utc']}, git commit: "
-        f"{meta['git']['commit']}). Provider: {meta['provider']}. {meta['n_samples']} samples "
+        f"Source: `evals/results/{path.name}`. Provider: {meta['provider']}. "
+        f"{meta['n_samples']} samples "
         f"x {meta['runs_per_sample']} runs per configuration. Judge model: "
         f"{meta['judge_model']}. Token prices: {meta['model_price_source']}."
     )

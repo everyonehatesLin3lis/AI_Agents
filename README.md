@@ -7,9 +7,9 @@ alternatives, with links to the Google Cloud documentation.
 - **Coding agents** (Claude Code and others) call it through an MCP tool.
 - **People** use it through a Streamlit UI.
 
-Turing College, AI Engineering, Sprint 3 project. It is also a small research project:
-the design choices are measured, and every number in this file comes from a saved run
-in `evals/results/`.
+This is my Turing College AI Engineering Sprint 3 project. I also treated it as a small
+research project: I measured the design choices, and every number in this file comes
+from a saved run in `evals/results/`.
 
 ## The problem
 
@@ -235,10 +235,10 @@ for finding in report.findings:
 
 ### Common use cases
 
-**1. Check a new stack before `terraform apply`.** A developer has written a small web
-stack: two VMs, a MySQL database, an uploads bucket and a Pub/Sub topic
-(`evals/dataset/mixed/web_stack.tf`). They paste it into the UI. The real output with
-the default model is saved in
+**1. Check a new stack before `terraform apply`.** I have written a small web stack:
+two VMs, a MySQL database, an uploads bucket and a Pub/Sub topic
+(`evals/dataset/mixed/web_stack.tf`). I paste it into the UI. The real output with the
+default model is saved in
 [`docs/examples/web_stack_review.md`](docs/examples/web_stack_review.md). In short:
 
 ```
@@ -329,11 +329,11 @@ document that answers it.
 | Speed | Median and p95 per review, per node | Wall-clock time recorded by the graph |
 | Cost of running | Tokens and USD per review | Token counts times the provider's price |
 
-**Models.** The model is a setting, not code. Three low-cost models from three vendors
-were compared through OpenRouter: `xiaomi/mimo-v2.6-flash`, `deepseek/deepseek-v4-flash`
+**Models.** The model is a setting, not code. I compared three low-cost models from
+three vendors through OpenRouter: `xiaomi/mimo-v2.6-flash`, `deepseek/deepseek-v4-flash`
 and `google/gemini-3.5-flash-lite`. All three cost under $3 per million output tokens.
-No premium model was run, so the results do not say whether a stronger model writes
-better advice (see Limitations). The judge for the model comparison is
+I did not run a premium model, so the results do not say whether a stronger model
+writes better advice (see Limitations). The judge for the model comparison is
 `openai/gpt-5-mini`, from a fourth vendor, so no model is judged by a relative. Any
 other model can be passed with `--models` and `--judge-model`.
 
@@ -342,13 +342,14 @@ search off) and `no_rewrite` (rewrite loop off). They come from a separate, earl
 judged by `xiaomi/mimo-v2.6-pro`. That judge is a relative of the model it judges, so
 the ablation faithfulness numbers are indicative only; only `full` was judged.
 
-**Baseline.** `evals/react_baseline.py` is a ReAct agent: one LLM in a function-calling
+**Baseline.** To test the design, I built a second agent. `evals/react_baseline.py` is a
+ReAct agent: one LLM in a function-calling
 loop (LangChain `create_agent`). It is given the raw Terraform file and three tools,
 which are the same security rules, cost estimator and documentation search the graph
 uses. It decides which tools to call and writes the whole report, security findings
 included, and nothing checks its answer against the rule output. It ran on the default
-model next to the graph agent, on the same samples and scored with the same metrics. It
-exists only for this comparison; the UI and the MCP tool always use the graph.
+model next to the graph agent, on the same samples, and I scored it with the same
+metrics. It exists only for this comparison; the UI and the MCP tool always use the graph.
 
 **Judging.** The judges run on the first of the three runs of each sample, to limit
 cost, so each judged score rests on at most 14 reviews per model. Ragas scores only
@@ -371,7 +372,7 @@ prices used. The README tables are generated from those files by `evals/report.p
 
 ### Deterministic parts (no LLM)
 
-Source: `evals/results/20261110T081110Z_deterministic.json` (run 2026-11-10T08:11:10+00:00, git commit: 532207b8098f278d9c41d73e36b66b9797299b33). 14 samples.
+Source: `evals/results/20261110T081110Z_deterministic.json`. 14 samples.
 
 **Security rules** (a finding is a `(resource, rule)` pair):
 
@@ -407,7 +408,7 @@ Critical false positives on the clean samples: **0**.
 
 ### Full agent, per model
 
-Source: `evals/results/20261110T141250Z_llm.json` (run 2026-11-10T14:12:50+00:00, git commit: 550df15deb5f187a0a26a060901500364314fd4a). Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: openai/gpt-5-mini. Token prices: openrouter live.
+Source: `evals/results/20261110T141250Z_llm.json`. Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: openai/gpt-5-mini. Token prices: openrouter live.
 
 **Quality** (configuration `full`):
 
@@ -437,7 +438,7 @@ Source: `evals/results/20261110T141250Z_llm.json` (run 2026-11-10T14:12:50+00:00
 
 ### Ablations (xiaomi/mimo-v2.6-flash)
 
-Source: `evals/results/20261110T080559Z_llm.json` (run 2026-11-10T08:05:59+00:00, git commit: 93db1378cd83aef8d6f69732a477aa2742d5641c). Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: xiaomi/mimo-v2.6-pro. Token prices: openrouter live.
+Source: `evals/results/20261110T080559Z_llm.json`. Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: xiaomi/mimo-v2.6-pro. Token prices: openrouter live.
 
 | Configuration | Recs / review | Share with source | Rewrites / review | Median (s) | LLM calls | USD / review | Faithfulness | Answer relevancy |
 |---|---|---|---|---|---|---|---|---|
@@ -449,7 +450,7 @@ Source: `evals/results/20261110T080559Z_llm.json` (run 2026-11-10T08:05:59+00:00
 
 ### Graph agent against a ReAct baseline (google/gemini-3.5-flash-lite)
 
-Source: `evals/results/20261110T115819Z_llm.json` (run 2026-11-10T11:58:19+00:00, git commit: ce7d8adbce03ea4c139f228e6212468d36d88972). Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: openai/gpt-5-mini. Token prices: openrouter live.
+Source: `evals/results/20261110T115819Z_llm.json`. Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: openai/gpt-5-mini. Token prices: openrouter live.
 
 **Security and recommendations:**
 
@@ -479,8 +480,7 @@ Source: `evals/results/20261110T115819Z_llm.json` (run 2026-11-10T11:58:19+00:00
 ## Discussion
 
 **The deterministic parts meet their targets on this dataset.** That result should be
-read with care: the rules and the samples were written by the same author, at the same
-time. The numbers show that the rules do what they were designed to do and that they
+read with care: I wrote the rules and the samples myself, at the same time. The numbers show that the rules do what they were designed to do and that they
 will catch a regression. They do not show how the rules perform on Terraform written by
 other people, which is the first item under future work.
 
@@ -593,9 +593,10 @@ pool has a fixed node count") counts as unsupported, because general documentati
 cannot say it. A check on the 7 judged Gemini reviews supports this: scoring the same
 saved advice again with the facts about the reviewed resources added to the context
 raised the mean from 0.49 to 0.87
-(`evals/results/20261110T141250Z_ragas_diagnostic.json`, one re-scoring). The metric's
-definition was not changed after seeing the result; the tables show it as first defined.
-What remains below 1.00 after the check was not examined statement by statement.
+(`evals/results/20261110T141250Z_ragas_diagnostic.json`, one re-scoring).
+I did not change the metric's definition after seeing the result; the tables show it as
+first defined. I did not examine, statement by statement, what remains below 1.00 after
+the check.
 
 **Which model to use.** On these numbers, `gemini-3.5-flash-lite` suits the
 interactive uses (UI and MCP tool) because it is about six times faster, the steadiest

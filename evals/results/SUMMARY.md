@@ -1,6 +1,6 @@
 ### Deterministic parts (no LLM)
 
-Source: `evals/results/20261110T081110Z_deterministic.json` (run 2026-11-10T08:11:10+00:00, git commit: 532207b8098f278d9c41d73e36b66b9797299b33). 14 samples.
+Source: `evals/results/20261110T081110Z_deterministic.json`. 14 samples.
 
 **Security rules** (a finding is a `(resource, rule)` pair):
 
@@ -36,7 +36,7 @@ Critical false positives on the clean samples: **0**.
 
 ### Full agent, per model
 
-Source: `evals/results/20261110T141250Z_llm.json` (run 2026-11-10T14:12:50+00:00, git commit: 550df15deb5f187a0a26a060901500364314fd4a). Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: openai/gpt-5-mini. Token prices: openrouter live.
+Source: `evals/results/20261110T141250Z_llm.json`. Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: openai/gpt-5-mini. Token prices: openrouter live.
 
 **Quality** (configuration `full`):
 
@@ -66,7 +66,7 @@ Source: `evals/results/20261110T141250Z_llm.json` (run 2026-11-10T14:12:50+00:00
 
 ### Ablations (xiaomi/mimo-v2.6-flash)
 
-Source: `evals/results/20261110T080559Z_llm.json` (run 2026-11-10T08:05:59+00:00, git commit: 93db1378cd83aef8d6f69732a477aa2742d5641c). Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: xiaomi/mimo-v2.6-pro. Token prices: openrouter live.
+Source: `evals/results/20261110T080559Z_llm.json`. Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: xiaomi/mimo-v2.6-pro. Token prices: openrouter live.
 
 | Configuration | Recs / review | Share with source | Rewrites / review | Median (s) | LLM calls | USD / review | Faithfulness | Answer relevancy |
 |---|---|---|---|---|---|---|---|---|
@@ -78,7 +78,7 @@ Source: `evals/results/20261110T080559Z_llm.json` (run 2026-11-10T08:05:59+00:00
 
 ### Graph agent against a ReAct baseline (google/gemini-3.5-flash-lite)
 
-Source: `evals/results/20261110T115819Z_llm.json` (run 2026-11-10T11:58:19+00:00, git commit: ce7d8adbce03ea4c139f228e6212468d36d88972). Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: openai/gpt-5-mini. Token prices: openrouter live.
+Source: `evals/results/20261110T115819Z_llm.json`. Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: openai/gpt-5-mini. Token prices: openrouter live.
 
 **Security and recommendations:**
 

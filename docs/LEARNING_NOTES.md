@@ -1,8 +1,8 @@
 # Learning notes
 
 Plain-language notes on each part of the project: what was built, why this way, what
-else was possible and what can break. Written so the project owner can explain every
-decision in a live review.
+else was possible and what can break. I wrote them so I can explain every decision in a
+live review.
 
 ---
 

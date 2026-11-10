@@ -55,7 +55,7 @@ OpenRouter spend for all runs: under $3 of the $5 budget.
 3. A premium model in the comparison, and ablations on a second model.
 4. The ReAct baseline on more models and with harder injection samples.
 5. Check whether Turing College created a separate submission repository; the code is
-   in the owner's personal repository.
+   in my personal repository.
 
 ## Verification at the time of writing
 

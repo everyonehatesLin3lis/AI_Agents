@@ -156,7 +156,7 @@ renamed to `MCPServer` in version 2. The decorator API is the same.
 `deepseek/deepseek-v4-flash` and `google/gemini-3.5-flash-lite`, judged by
 `openai/gpt-5-mini`. The ablations were run once, on MiMo-flash only.
 
-**Why.** The project owner chose these models and a $5 budget for all runs. Three
+**Why.** I chose these models and a $5 budget for all runs. Three
 vendors give the comparison some spread. A judge from a fourth vendor means no model
 is scored by a relative. The full set of runs cost under $1.
 
