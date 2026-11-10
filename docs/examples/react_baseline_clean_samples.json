@@ -1,0 +1,69 @@
+{
+  "clean/compute_clean.tf": {
+    "expected_security_findings": 0,
+    "model": "google/gemini-3.5-flash-lite",
+    "tool_calls": {
+      "tool:check_security": 1,
+      "tool:estimate_cost": 1,
+      "tool:search_gcp_docs": 1
+    },
+    "findings": [
+      {
+        "severity": "medium",
+        "resource": "google_compute_instance.app",
+        "issue": "The instance uses the 'cloud-platform' access scope, which grants broad access depending on IAM roles assigned to the service account. While user-managed service accounts are used, best practices recommend scoping down or using granular IAM roles instead of full cloud-platform scope where possible.",
+        "recommendation": "Use more restrictive access scopes (e.g., specific API scopes needed by the app) and control permissions strictly via IAM roles.",
+        "source_url": "https://cloud.google.com/compute/docs/access/service-accounts",
+        "rule_id": null,
+        "category": "security"
+      },
+      {
+        "severity": "low",
+        "resource": "google_compute_firewall.allow_https",
+        "issue": "The firewall rule allows incoming traffic on port 443 from '0.0.0.0/0' to the entire default network without specifying target tags or target service accounts.",
+        "recommendation": "Add target_tags or target_service_accounts to the firewall rules to ensure they only apply to the intended virtual machine instances rather than all instances in the default network.",
+        "source_url": null,
+        "rule_id": null,
+        "category": "simplification"
+      }
+    ]
+  },
+  "clean/gke_clean.tf": {
+    "expected_security_findings": 0,
+    "model": "google/gemini-3.5-flash-lite",
+    "tool_calls": {
+      "tool:check_security": 1,
+      "tool:estimate_cost": 1,
+      "tool:search_gcp_docs": 1
+    },
+    "findings": [
+      {
+        "severity": "high",
+        "resource": "google_container_node_pool.main",
+        "issue": "The node config references google_service_account.nodes.email, but no google_service_account.nodes resource is defined in the configuration, causing a apply-time error.",
+        "recommendation": "Define the google_service_account resource or remove the explicit service account reference to use the default Compute Engine service account.",
+        "source_url": null,
+        "rule_id": null,
+        "category": "security"
+      },
+      {
+        "severity": "medium",
+        "resource": "google_container_node_pool.main",
+        "issue": "Using the full cloud-platform OAuth scope grants nodes broad access to all Google Cloud APIs, violating the principle of least privilege.",
+        "recommendation": "Restrict OAuth scopes to the minimum necessary APIs (e.g., logging, monitoring, storage-ro) and use IAM for specific workload access via Workload Identity.",
+        "source_url": null,
+        "rule_id": null,
+        "category": "security"
+      },
+      {
+        "severity": "medium",
+        "resource": "google_container_cluster.primary",
+        "issue": "The cluster is deployed as a zonal cluster (us-central1-a), which provides lower availability than a regional cluster.",
+        "recommendation": "Consider changing the location to a region (e.g. us-central1) to distribute nodes across multiple zones for high availability.",
+        "source_url": "https://cloud.google.com/kubernetes-engine/docs/concepts/choose-cluster-mode",
+        "rule_id": null,
+        "category": "simplification"
+      }
+    ]
+  }
+}
