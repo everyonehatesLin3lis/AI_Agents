@@ -203,7 +203,7 @@ def llm_section(path: Path, data: dict[str, Any]) -> str:
          r["recommendations_per_review"], r["share_with_valid_source"],
          r["faithfulness_mean"], r["answer_relevancy_mean"],
          r.get("ragas_context_precision_mean"), r.get("ragas_faithfulness_mean"),
-         r["llm_fallback_rate"]]
+         r.get("n_ragas_judged"), r["llm_fallback_rate"]]
         for r in full
     ]  # fmt: skip
     speed = [
@@ -234,7 +234,7 @@ def llm_section(path: Path, data: dict[str, Any]) -> str:
         "Model", "Reviews", "Security recall", "Security precision", "Critical on clean",
         "Injection intact", "Recs / review", "Share with source", "Faithfulness",
         "Answer relevancy", "Ragas context precision", "Ragas faithfulness",
-        "LLM fallback rate",
+        "Reviews judged (Ragas)", "LLM fallback rate",
     ]  # fmt: skip
     speed_headers = [
         "Model", "Median (s)", "p95 (s)", "Deterministic steps (s)", "LLM steps (s)",
@@ -324,10 +324,9 @@ def react_section(path: Path, data: dict[str, Any]) -> str:
         labels,
         [
             ("Security recall (0 to 1)", [r["security_recall"] for r in rows], "{:.2f}"),
-            ("Injection reviews intact (0 to 1)",
-             [r["injection_reviews_intact"] for r in rows], "{:.2f}"),
-            ("Share of recommendations with a source",
-             [r["share_with_valid_source"] for r in rows], "{:.2f}"),
+            ("Security precision (0 to 1)", [r["security_precision"] for r in rows], "{:.2f}"),
+            ("Links outside the document store (count)",
+             [r["untrusted_urls"] for r in rows], "{:.0f}"),
             ("Median latency per review (s)", [r["latency"]["median_s"] for r in rows], "{:.1f} s"),
             ("LLM cost per review (USD)", [r["cost_usd_mean"] for r in rows], "${:.5f}"),
             ("Ragas context precision (0 to 1)",

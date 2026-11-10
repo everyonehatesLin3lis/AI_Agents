@@ -36,33 +36,33 @@ Critical false positives on the clean samples: **0**.
 
 ### Full agent, per model
 
-Source: `evals/results/20261110T095622Z_llm.json` (run 2026-11-10T09:56:21+00:00, git commit: d3ca62f9b13796e96669f58fee1a858a119944d9). Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: openai/gpt-5-mini. Token prices: openrouter live.
+Source: `evals/results/20261110T141250Z_llm.json` (run 2026-11-10T14:12:50+00:00, git commit: 550df15deb5f187a0a26a060901500364314fd4a). Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: openai/gpt-5-mini. Token prices: openrouter live.
 
 **Quality** (configuration `full`):
 
-| Model | Reviews | Security recall | Security precision | Critical on clean | Injection intact | Recs / review | Share with source | Faithfulness | Answer relevancy | LLM fallback rate |
-|---|---|---|---|---|---|---|---|---|---|---|
-| xiaomi/mimo-v2.6-flash | 42 | 1.00 | 1.00 | 0 | 1.00 | 2.45 | 0.89 | 1.00 | 0.94 | 0.00 |
-| deepseek/deepseek-v4-flash | 42 | 1.00 | 1.00 | 0 | 1.00 | 1.19 | 0.92 | 0.99 | 0.90 | 0.02 |
-| google/gemini-3.5-flash-lite | 42 | 1.00 | 1.00 | 0 | 1.00 | 0.64 | 1.00 | 1.00 | 0.91 | 0.00 |
+| Model | Reviews | Security recall | Security precision | Critical on clean | Injection intact | Recs / review | Share with source | Faithfulness | Answer relevancy | Ragas context precision | Ragas faithfulness | Reviews judged (Ragas) | LLM fallback rate |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| xiaomi/mimo-v2.6-flash | 42 | 1.00 | 1.00 | 0 | 1.00 | 2.24 | 0.93 | 0.95 | 0.92 | 0.98 | 0.49 | 12 | 0.00 |
+| deepseek/deepseek-v4-flash | 42 | 1.00 | 1.00 | 0 | 1.00 | 1.57 | 0.91 | 0.97 | 0.96 | 1.00 | 0.55 | 9 | 0.00 |
+| google/gemini-3.5-flash-lite | 42 | 1.00 | 1.00 | 0 | 1.00 | 0.62 | 1.00 | 0.99 | 0.92 | 0.93 | 0.49 | 7 | 0.00 |
 
 **Speed and cost** (configuration `full`):
 
 | Model | Median (s) | p95 (s) | Deterministic steps (s) | LLM steps (s) | LLM calls | Input tokens | Output tokens | USD / review |
 |---|---|---|---|---|---|---|---|---|
-| xiaomi/mimo-v2.6-flash | 28.55 | 74.87 | 0.66 | 27.78 | 2.90 | 3544 | 1260 | 0.00085 |
-| deepseek/deepseek-v4-flash | 11.66 | 40.20 | 0.37 | 10.96 | 2.67 | 2999 | 1719 | 0.00059 |
-| google/gemini-3.5-flash-lite | 3.03 | 5.96 | 0.26 | 2.77 | 2.79 | 3139 | 241 | 0.00154 |
+| xiaomi/mimo-v2.6-flash | 20.25 | 46.61 | 0.74 | 19.27 | 2.88 | 3608 | 1121 | 0.00082 |
+| deepseek/deepseek-v4-flash | 19.61 | 68.39 | 0.92 | 19.11 | 2.83 | 3284 | 2414 | 0.00074 |
+| google/gemini-3.5-flash-lite | 3.28 | 4.51 | 0.32 | 2.80 | 2.71 | 3029 | 230 | 0.00148 |
 
-![Latency, cost and faithfulness per model](docs/img/models.png)
+![Speed, cost and recommendation quality per model](docs/img/models.png)
 
 **Median seconds per graph node:**
 
 | Model | cost_estimate | grade_docs | parse | plan_research | retrieve | rewrite_query | save_feedback | security_check | write_report |
 |---|---|---|---|---|---|---|---|---|---|
-| xiaomi/mimo-v2.6-flash | 0.00 | 5.25 | 0.00 | 3.07 | 0.62 | 0.00 | 0.01 | 0.00 | 15.09 |
-| deepseek/deepseek-v4-flash | 0.00 | 0.76 | 0.00 | 2.14 | 0.37 | 0.00 | 0.01 | 0.00 | 3.73 |
-| google/gemini-3.5-flash-lite | 0.00 | 0.70 | 0.00 | 0.86 | 0.25 | 0.00 | 0.00 | 0.00 | 1.15 |
+| xiaomi/mimo-v2.6-flash | 0.00 | 2.86 | 0.00 | 2.21 | 0.72 | 0.00 | 0.01 | 0.00 | 7.74 |
+| deepseek/deepseek-v4-flash | 0.00 | 1.97 | 0.01 | 3.21 | 0.91 | 0.00 | 0.01 | 0.00 | 6.22 |
+| google/gemini-3.5-flash-lite | 0.00 | 0.79 | 0.00 | 0.89 | 0.31 | 0.00 | 0.01 | 0.00 | 1.19 |
 
 ### Ablations (xiaomi/mimo-v2.6-flash)
 
@@ -75,3 +75,30 @@ Source: `evals/results/20261110T080559Z_llm.json` (run 2026-11-10T08:05:59+00:00
 | no_rewrite | 2.24 | 0.94 | 0.00 | 28.67 | 2.88 | 0.00084 | n/a | n/a |
 
 ![Ablations](docs/img/ablations.png)
+
+### Graph agent against a ReAct baseline (google/gemini-3.5-flash-lite)
+
+Source: `evals/results/20261110T115819Z_llm.json` (run 2026-11-10T11:58:19+00:00, git commit: ce7d8adbce03ea4c139f228e6212468d36d88972). Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: openai/gpt-5-mini. Token prices: openrouter live.
+
+**Security and recommendations:**
+
+| Agent | Reviews ok / run | Security recall | Security precision | Critical on clean | Injection intact | Security tool skipped | Recs / review | Share with source | Links outside the store |
+|---|---|---|---|---|---|---|---|---|---|
+| Graph agent | 42 / 42 | 1.00 | 1.00 | 0 | 1.00 | n/a | 0.64 | 1.00 | 0 |
+| ReAct baseline | 42 / 42 | 1.00 | 0.95 | 0 | 1.00 | 0 | 0.36 | 1.00 | 3 |
+
+**Judged quality** (DeepEval on the whole advisory text, Ragas on the RAG step):
+
+| Agent | Reviews judged (DeepEval) | Faithfulness | Answer relevancy | Reviews judged (Ragas) | Ragas context precision | Ragas faithfulness |
+|---|---|---|---|---|---|---|
+| Graph agent | 14 | 1.00 | 0.93 | 8 | 1.00 | 0.66 |
+| ReAct baseline | 14 | 1.00 | 0.96 | 5 | 0.63 | 0.49 |
+
+**Speed and cost:**
+
+| Agent | Median (s) | p95 (s) | LLM calls | Input tokens | Output tokens | USD / review |
+|---|---|---|---|---|---|---|
+| Graph agent | 3.13 | 5.91 | 2.79 | 3135 | 239 | 0.00154 |
+| ReAct baseline | 2.90 | 4.32 | 2.00 | 2428 | 545 | 0.00209 |
+
+![Graph agent against the ReAct baseline](docs/img/react.png)

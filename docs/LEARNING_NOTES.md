@@ -206,10 +206,11 @@ prices change, so each result file records the prices it used.
 rewrite loop were ablated on one of them. What came out, in plain words:
 - *The security numbers are the same for every model*, because no model touches them.
   This is the strongest evidence that the "LLM cannot override security" design works.
-- *Models differ in how much advice they give and how fast they are.* Gemini was ten
-  times faster than MiMo but wrote a quarter of the recommendations.
-- *A saturated metric tells you nothing.* Faithfulness was 0.99 to 1.00 for all three
-  models, so it cannot rank them. A metric is only useful if it can tell options apart.
+- *Models differ in how much advice they give and how fast they are.* Gemini was about
+  six times faster than MiMo but wrote about a quarter of the recommendations.
+- *A saturated metric tells you nothing.* DeepEval faithfulness was 0.95 or higher for
+  all three models, so it cannot rank them. A metric is only useful if it can tell
+  options apart.
 - *RAG is what makes recommendations citable*: without it, the same number of
   recommendations, none with a source.
 - *A part that never runs cannot be measured.* The rewrite loop ran in 0 to 7% of
@@ -219,6 +220,37 @@ rewrite loop were ablated on one of them. What came out, in plain words:
   numbers by 10%. Only differences much bigger than that mean anything.
 - *Timeouts per attempt are not a deadline.* One review waited 628 seconds, because a
   60-second timeout was retried several times.
+
+**A second agent, built to be compared (2026-11-10).** A ReAct agent was added in
+`evals/` as a baseline: one LLM, real function calling, the same three tools, no checks
+on its answer. Then both agents were run on the same samples. What came out:
+- *The expected failure did not happen.* The idea was "a ReAct agent can be talked out
+  of the security check". With Gemini it called the security tool every time and kept
+  every real finding, also on the injection samples. Say this plainly in the review: the
+  measurement did not confirm the fear on this dataset.
+- *A different failure did happen.* The baseline wrote security findings of its own,
+  with no rule behind them, on two clean files in every run (6 false positives). One
+  saved example is a HIGH finding on a correct configuration. In the graph the LLM has
+  no way to write a security finding at all.
+- *Grading the search results matters.* Ragas context precision was 1.00 for the graph
+  and 0.63 for the baseline, which keeps everything its search returns.
+- *A test and an eval answer different questions.* The pytest test proves the baseline
+  *can* return an empty report (with a fake model that obeys the injected text). The
+  eval shows what a real model *did*. Both are true, and they are not the same claim.
+
+**Ragas next to DeepEval.** Ragas measures the RAG step only: are the kept passages
+useful (context precision), and is the advice supported by them (faithfulness).
+- *A low score needs an explanation before a conclusion.* Ragas faithfulness was about
+  0.5 for every model while DeepEval gave 0.95 or more. The first guess (the advice
+  quotes cost numbers) was wrong; reading the saved text showed that. The second guess
+  was tested: adding the facts about the reviewed resources to the context raised the
+  score from 0.49 to 0.87. So the metric was mostly counting correct statements about
+  the user's own file as "not in the documentation".
+- *Do not change a metric after seeing its result.* The tables keep the first
+  definition; the explanation and the check are reported next to it.
+- *Save what was judged.* The first runs kept only scores, so adding Ragas meant paying
+  for the reviews again. Records now keep the judged text, and `evals/rejudge.py` can
+  score a saved run with another judge for the price of the judge alone.
 
 **Checking prices against the real API paid off.** It found the static table charged
 10% too much for disks in Europe. The fix stores exact prices, and the expected costs
@@ -287,6 +319,13 @@ the security tools, and the number of calls is open-ended. Here the order is fix
 code and the model only fills in the parts that need judgement. The cost: the agent
 cannot invent a new kind of step, for example looking at a service it has no tool for.
 
+This was measured, not only argued: `evals/react_baseline.py` is a ReAct agent over the
+same tools. With the model tested it did not skip the security tool, but it added
+security findings of its own that no rule supports (see the Phase 6 notes and the
+README results). In the baseline the function calling is the standard kind: the tools
+are Python functions with a docstring, LangChain turns them into tool schemas, the
+model replies with tool calls, and the loop runs them and feeds the results back.
+
 ### When to use prompt engineering, RAG or an agent
 
 - **Prompt engineering** is enough when the model already knows what it needs, and the
@@ -332,6 +371,6 @@ code, so the freedom is bounded.
 more rules, and live prices for every service.
 
 **"Which model would you use?"** For the UI and the MCP tool, Gemini 3.5 Flash Lite:
-about 3 seconds per review against 12 and 29 for the others, every recommendation
-cited, and still a fraction of a cent. The security result does not depend on the
+about 3 seconds per review against about 20 for the other two, the steadiest between
+runs, every recommendation cited, and still a fraction of a cent. The security result does not depend on the
 choice.

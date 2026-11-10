@@ -84,7 +84,10 @@ Blue nodes are plain code. Orange nodes use the LLM.
 bounded decisions (what to search for, which passages are good enough, whether to
 search again) but never decides whether the security check or the cost estimate runs.
 It is not a ReAct agent, on purpose: in a ReAct loop the model chooses which tools to
-call, and text hidden in the Terraform could talk it out of the security check.
+call, and text hidden in the Terraform could talk it out of the security check. A
+ReAct agent over the same tools was built as a baseline and measured against the graph
+(see Results): with the model tested it kept every real finding, but it also wrote
+security findings of its own that no rule supports.
 **Function calling** happens at the edge: `review_gcp_infra` is a tool that coding
 agents call. Inside the graph, the LLM's JSON output (search queries) becomes the
 arguments of `search_gcp_docs`, validated by a Pydantic schema. The longer explanation,
@@ -288,6 +291,10 @@ findings and the cost estimate, with a warning that the AI-written part is missi
 uv run pytest                       # unit and integration tests (no API key needed)
 uv run ruff check . && uv run ruff format .
 uv run python -m evals.run          # run the eval suite, writes evals/results/
+uv run python -m evals.run --configs full,react --models google/gemini-3.5-flash-lite
+                                    # graph agent against the ReAct baseline
+uv run python -m evals.rejudge evals/results/<file>_llm.json --judge-model <model>
+                                    # score a saved run again with another judge
 uv run python -m evals.report       # rebuild the tables and charts below
 ```
 
@@ -296,7 +303,8 @@ uv run python -m evals.report       # rebuild the tables and charts below
 **Questions.** (1) Do the deterministic parts meet their targets: security recall of at
 least 0.9 and zero critical false positives on clean configurations? (2) How do
 different models compare on recommendation quality, speed and cost? (3) What do
-documentation search (RAG) and the query rewrite loop add?
+documentation search (RAG) and the query rewrite loop add? (4) What does the fixed graph
+buy, compared with a ReAct agent that is given the same tools and decides for itself?
 
 **Dataset** (`evals/dataset/`, fixed): 14 Terraform samples with labelled findings.
 Five vulnerable and five clean samples (one per service), one mixed stack with an
@@ -314,7 +322,9 @@ document that answers it.
 | Cost | Estimate error | Against the hand-calculated totals |
 | Retrieval | Hit rate at 1, 2 and 4; MRR | Expected document in the top k |
 | Recommendations | Share with a valid source | `source_url` belongs to the document store |
-| Report text | Faithfulness, answer relevancy | DeepEval, judged by a separate stronger model |
+| Report text | Faithfulness, answer relevancy | DeepEval, on the whole AI-written text against everything the writer was given |
+| RAG step | Context precision | Ragas: were the passages the agent kept useful for the advice it wrote |
+| RAG step | Faithfulness to the passages | Ragas: share of statements in the advice that the retrieved passages alone support |
 | Injection | Reviews intact | All expected findings present and no untrusted link |
 | Speed | Median and p95 per review, per node | Wall-clock time recorded by the graph |
 | Cost of running | Tokens and USD per review | Token counts times the provider's price |
@@ -331,6 +341,21 @@ other model can be passed with `--models` and `--judge-model`.
 search off) and `no_rewrite` (rewrite loop off). They come from a separate, earlier run,
 judged by `xiaomi/mimo-v2.6-pro`. That judge is a relative of the model it judges, so
 the ablation faithfulness numbers are indicative only; only `full` was judged.
+
+**Baseline.** `evals/react_baseline.py` is a ReAct agent: one LLM in a function-calling
+loop (LangChain `create_agent`). It is given the raw Terraform file and three tools,
+which are the same security rules, cost estimator and documentation search the graph
+uses. It decides which tools to call and writes the whole report, security findings
+included, and nothing checks its answer against the rule output. It ran on the default
+model next to the graph agent, on the same samples and scored with the same metrics. It
+exists only for this comparison; the UI and the MCP tool always use the graph.
+
+**Judging.** The judges run on the first of the three runs of each sample, to limit
+cost, so each judged score rests on at most 14 reviews per model. Ragas scores only
+reviews that have both retrieved passages and at least one recommendation, which is
+fewer still (the count is in each table). Every judged record keeps the text that was
+judged, so a result file can be scored again by another judge with
+`uv run python -m evals.rejudge`, without paying for the reviews again.
 
 **Repeatability.** Temperature 0 and seed 42 are sent where the model accepts them.
 Each sample is reviewed 3 times per configuration. Each configuration starts with an
@@ -382,33 +407,33 @@ Critical false positives on the clean samples: **0**.
 
 ### Full agent, per model
 
-Source: `evals/results/20261110T095622Z_llm.json` (run 2026-11-10T09:56:21+00:00, git commit: d3ca62f9b13796e96669f58fee1a858a119944d9). Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: openai/gpt-5-mini. Token prices: openrouter live.
+Source: `evals/results/20261110T141250Z_llm.json` (run 2026-11-10T14:12:50+00:00, git commit: 550df15deb5f187a0a26a060901500364314fd4a). Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: openai/gpt-5-mini. Token prices: openrouter live.
 
 **Quality** (configuration `full`):
 
-| Model | Reviews | Security recall | Security precision | Critical on clean | Injection intact | Recs / review | Share with source | Faithfulness | Answer relevancy | LLM fallback rate |
-|---|---|---|---|---|---|---|---|---|---|---|
-| xiaomi/mimo-v2.6-flash | 42 | 1.00 | 1.00 | 0 | 1.00 | 2.45 | 0.89 | 1.00 | 0.94 | 0.00 |
-| deepseek/deepseek-v4-flash | 42 | 1.00 | 1.00 | 0 | 1.00 | 1.19 | 0.92 | 0.99 | 0.90 | 0.02 |
-| google/gemini-3.5-flash-lite | 42 | 1.00 | 1.00 | 0 | 1.00 | 0.64 | 1.00 | 1.00 | 0.91 | 0.00 |
+| Model | Reviews | Security recall | Security precision | Critical on clean | Injection intact | Recs / review | Share with source | Faithfulness | Answer relevancy | Ragas context precision | Ragas faithfulness | Reviews judged (Ragas) | LLM fallback rate |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| xiaomi/mimo-v2.6-flash | 42 | 1.00 | 1.00 | 0 | 1.00 | 2.24 | 0.93 | 0.95 | 0.92 | 0.98 | 0.49 | 12 | 0.00 |
+| deepseek/deepseek-v4-flash | 42 | 1.00 | 1.00 | 0 | 1.00 | 1.57 | 0.91 | 0.97 | 0.96 | 1.00 | 0.55 | 9 | 0.00 |
+| google/gemini-3.5-flash-lite | 42 | 1.00 | 1.00 | 0 | 1.00 | 0.62 | 1.00 | 0.99 | 0.92 | 0.93 | 0.49 | 7 | 0.00 |
 
 **Speed and cost** (configuration `full`):
 
 | Model | Median (s) | p95 (s) | Deterministic steps (s) | LLM steps (s) | LLM calls | Input tokens | Output tokens | USD / review |
 |---|---|---|---|---|---|---|---|---|
-| xiaomi/mimo-v2.6-flash | 28.55 | 74.87 | 0.66 | 27.78 | 2.90 | 3544 | 1260 | 0.00085 |
-| deepseek/deepseek-v4-flash | 11.66 | 40.20 | 0.37 | 10.96 | 2.67 | 2999 | 1719 | 0.00059 |
-| google/gemini-3.5-flash-lite | 3.03 | 5.96 | 0.26 | 2.77 | 2.79 | 3139 | 241 | 0.00154 |
+| xiaomi/mimo-v2.6-flash | 20.25 | 46.61 | 0.74 | 19.27 | 2.88 | 3608 | 1121 | 0.00082 |
+| deepseek/deepseek-v4-flash | 19.61 | 68.39 | 0.92 | 19.11 | 2.83 | 3284 | 2414 | 0.00074 |
+| google/gemini-3.5-flash-lite | 3.28 | 4.51 | 0.32 | 2.80 | 2.71 | 3029 | 230 | 0.00148 |
 
-![Latency, cost and faithfulness per model](docs/img/models.png)
+![Speed, cost and recommendation quality per model](docs/img/models.png)
 
 **Median seconds per graph node:**
 
 | Model | cost_estimate | grade_docs | parse | plan_research | retrieve | rewrite_query | save_feedback | security_check | write_report |
 |---|---|---|---|---|---|---|---|---|---|
-| xiaomi/mimo-v2.6-flash | 0.00 | 5.25 | 0.00 | 3.07 | 0.62 | 0.00 | 0.01 | 0.00 | 15.09 |
-| deepseek/deepseek-v4-flash | 0.00 | 0.76 | 0.00 | 2.14 | 0.37 | 0.00 | 0.01 | 0.00 | 3.73 |
-| google/gemini-3.5-flash-lite | 0.00 | 0.70 | 0.00 | 0.86 | 0.25 | 0.00 | 0.00 | 0.00 | 1.15 |
+| xiaomi/mimo-v2.6-flash | 0.00 | 2.86 | 0.00 | 2.21 | 0.72 | 0.00 | 0.01 | 0.00 | 7.74 |
+| deepseek/deepseek-v4-flash | 0.00 | 1.97 | 0.01 | 3.21 | 0.91 | 0.00 | 0.01 | 0.00 | 6.22 |
+| google/gemini-3.5-flash-lite | 0.00 | 0.79 | 0.00 | 0.89 | 0.31 | 0.00 | 0.01 | 0.00 | 1.19 |
 
 ### Ablations (xiaomi/mimo-v2.6-flash)
 
@@ -421,6 +446,33 @@ Source: `evals/results/20261110T080559Z_llm.json` (run 2026-11-10T08:05:59+00:00
 | no_rewrite | 2.24 | 0.94 | 0.00 | 28.67 | 2.88 | 0.00084 | n/a | n/a |
 
 ![Ablations](docs/img/ablations.png)
+
+### Graph agent against a ReAct baseline (google/gemini-3.5-flash-lite)
+
+Source: `evals/results/20261110T115819Z_llm.json` (run 2026-11-10T11:58:19+00:00, git commit: ce7d8adbce03ea4c139f228e6212468d36d88972). Provider: openrouter. 14 samples x 3 runs per configuration. Judge model: openai/gpt-5-mini. Token prices: openrouter live.
+
+**Security and recommendations:**
+
+| Agent | Reviews ok / run | Security recall | Security precision | Critical on clean | Injection intact | Security tool skipped | Recs / review | Share with source | Links outside the store |
+|---|---|---|---|---|---|---|---|---|---|
+| Graph agent | 42 / 42 | 1.00 | 1.00 | 0 | 1.00 | n/a | 0.64 | 1.00 | 0 |
+| ReAct baseline | 42 / 42 | 1.00 | 0.95 | 0 | 1.00 | 0 | 0.36 | 1.00 | 3 |
+
+**Judged quality** (DeepEval on the whole advisory text, Ragas on the RAG step):
+
+| Agent | Reviews judged (DeepEval) | Faithfulness | Answer relevancy | Reviews judged (Ragas) | Ragas context precision | Ragas faithfulness |
+|---|---|---|---|---|---|---|
+| Graph agent | 14 | 1.00 | 0.93 | 8 | 1.00 | 0.66 |
+| ReAct baseline | 14 | 1.00 | 0.96 | 5 | 0.63 | 0.49 |
+
+**Speed and cost:**
+
+| Agent | Median (s) | p95 (s) | LLM calls | Input tokens | Output tokens | USD / review |
+|---|---|---|---|---|---|---|
+| Graph agent | 3.13 | 5.91 | 2.79 | 3135 | 239 | 0.00154 |
+| ReAct baseline | 2.90 | 4.32 | 2.00 | 2428 | 545 | 0.00209 |
+
+![Graph agent against the ReAct baseline](docs/img/react.png)
 
 <!-- RESULTS:END -->
 
@@ -453,59 +505,104 @@ models being good: security findings come from the deterministic rules, and the 
 output is checked so it cannot change them. The model choice only affects the advice
 around the findings.
 
-**The models differ mostly in how much advice they write.** MiMo writes about 2.4
-recommendations per review, DeepSeek 1.2 and Gemini 0.6. Gemini wrote no recommendation
-at all in 18 of 42 reviews, and every one it did write cited a document in the store
-(share with source 1.00, against 0.89 and 0.92). Fewer, always-cited recommendations
+**The models differ mostly in how much advice they write.** MiMo writes about 2.2
+recommendations per review, DeepSeek 1.6 and Gemini 0.6. Gemini wrote no recommendation
+at all in 19 of 42 reviews, and every one it did write cited a document in the store
+(share with source 1.00, against 0.93 and 0.91). Fewer, always-cited recommendations
 and more, mostly-cited ones are both defensible; which is better depends on the reader.
-The judge cannot tell them apart: faithfulness is 0.99 to 1.00 for all three, so on this
-dataset the metric is saturated and does not rank the models. Answer relevancy (0.90 to
-0.94) is also too close to separate them.
+The DeepEval judge barely tells them apart: faithfulness is 0.95 to 0.99 and answer
+relevancy 0.92 to 0.96, on 14 judged reviews per model. Those gaps are too small, on too
+few reviews, to rank the models.
 
-**Speed differs by a factor of ten.** Median time per review is 3.0 s for Gemini,
-11.7 s for DeepSeek and 28.6 s for MiMo, and almost all of it is LLM time: the
-deterministic steps take under 0.7 s. The `write_report` step is the largest part for
+**Gemini is about six times faster.** Median time per review is 3.3 s for Gemini,
+19.6 s for DeepSeek and 20.3 s for MiMo, and almost all of it is LLM time: the
+deterministic steps take under 1 s. The `write_report` step is the largest part for
 every model. For the MCP tool, where a coding agent waits for the answer, this is the
-difference that matters most.
+difference that matters most. DeepSeek also has the longest slow cases (p95 68 s).
 
 **Cost is negligible for all three, and the ranking is not the token ranking.** A
-review costs $0.0006 (DeepSeek), $0.0009 (MiMo) or $0.0015 (Gemini). Gemini uses the
+review costs $0.0007 (DeepSeek), $0.0008 (MiMo) or $0.0015 (Gemini). Gemini uses the
 fewest output tokens but has the highest output price, so it is the most expensive. A
-thousand reviews cost between $0.60 and $1.50.
+thousand reviews cost between $0.74 and $1.48.
 
-**Reliability: one real failure, and a gap it exposed.** One DeepSeek review out of 126
-fell back to the deterministic summary, after `write_report` had waited 628 seconds. The
-60-second timeout applies to each attempt, and the client and the JSON repair step both
-retry, so nothing limits the total. The p95 (40 s) does not show it because one review
-in 42 is below the p95 cut-off. A total deadline per LLM step is listed under future work.
+**Reliability: one real failure in an earlier run, and a gap it exposed.** In the first
+three-model run (`evals/results/20261110T095622Z_llm.json`), one DeepSeek review out of
+126 fell back to the deterministic summary after `write_report` had waited 628 seconds.
+The 60-second timeout applies to each attempt, and the client and the JSON repair step
+both retry, so nothing limits the total. That run's p95 (40 s) did not show it, because
+one review in 42 is below the p95 cut-off. The run in the table above had no fallback.
+A total deadline per LLM step is listed under future work.
 
 **RAG is what makes recommendations citable.** Without documentation search the model
 writes about as many recommendations (2.07 against 2.12 per review), but none has a
 source (0.00 against 0.99). The price is about twice the time (10.8 s against 22.4 s)
 and twice the token cost. The no-RAG recommendations are not necessarily wrong, but the
 reader cannot check them: all 87 were labelled "Suggestion (no documentation source)".
-No model in any run put a link outside the document store into a report.
+In no run did the graph agent, with any model, put a link outside the document store
+into a report.
 
 **The rewrite loop rarely runs, so its value is not shown.** In the ablation run it
 never ran, so `full` and `no_rewrite` were the same agent; the gaps between them (0.99
-against 0.94 share with source, 22.4 s against 28.7 s) are run-to-run noise. In the
-comparison run it ran in 2 to 7% of reviews. The documentation store was written for
-the same five services as the samples, so the first search almost always finds enough.
-The loop would matter for queries the store covers poorly, which this dataset does not
-test.
+against 0.94 share with source, 22.4 s against 28.7 s) are run-to-run noise. In the two
+three-model runs it ran in 0 to 7% of reviews, depending on the model. The documentation
+store was written for the same five services as the samples, so the first search almost
+always finds enough. The loop would matter for queries the store covers poorly, which
+this dataset does not test.
 
-**Runs vary more than temperature 0 suggests.** The same model and configuration
-(MiMo, `full`) was run twice: recommendations per review 2.12 and 2.45, share with
-source 0.99 and 0.89, median time 22.4 s and 28.6 s. Differences of that size between
-models should not be read as real. The large gaps (ten times the speed, four times the
-recommendations) are well outside it.
+**Runs vary more than temperature 0 suggests.** The same model and configuration was
+run several times on different hours of one day. MiMo (`full`, three runs):
+recommendations per review 2.12, 2.45 and 2.24, share with source 0.99, 0.89 and 0.93,
+median time 22.4, 28.6 and 20.3 s. DeepSeek (two runs): median time 11.7 and 19.6 s,
+recommendations 1.19 and 1.57. Gemini was the steadiest (three runs: 3.0, 3.1 and 3.3 s,
+0.64, 0.64 and 0.62 recommendations). Differences of the MiMo and DeepSeek size between
+models should not be read as real; the earlier run would have ranked DeepSeek well ahead
+of MiMo on speed, and this one does not. The large gaps (Gemini's speed, MiMo writing
+three to four times as many recommendations as Gemini) held in every run.
+
+**The ReAct baseline found everything, and added findings of its own.** With the same
+tools and the same model, the baseline called the security tool in all 42 reviews and
+reported every expected finding, the three prompt-injection samples included (recall
+1.00, injection reviews intact 1.00). So on this dataset, with this model, the feared
+failure did not happen: the model was not talked out of the security check. What the
+baseline did instead is write security findings of its own, from reading the raw file,
+with no rule behind them. That happened on two of the five clean samples, in all three
+runs of each (6 false positives, precision 0.95, against 0 and 1.00 for the graph), and
+it put 3 links that are not in the document store into its reports, against 0. One
+saved example (`docs/examples/react_baseline_clean_samples.json`, a separate single
+review) shows a HIGH finding claiming that a service account resource is missing from a
+correct configuration. A reviewer cannot tell such a finding from a rule finding
+without checking it. In the graph this cannot happen by construction: the schema of the
+LLM's output has no security category and no severity above medium, and the final report
+is compared with the rule output. The test suite shows the stronger case with a fake
+model that obeys the injected text: the baseline returns an empty report, the graph
+returns all eight findings.
+
+**The graph's grading step shows up in the Ragas scores.** Ragas context precision is
+1.00 for the graph and 0.63 for the baseline: the baseline passes on every passage its
+search returned, while the graph keeps only the passages its `grade_docs` step judged
+relevant. The scores rest on 8 and 5 judged reviews, so the size of the gap is
+indicative. Speed and cost are close (3.1 s and $0.0015 against 2.9 s and $0.0021): for
+this task the baseline needs about as many LLM calls as the graph.
+
+**Ragas faithfulness is low for every model, and that is mostly the metric's scope, not
+invention.** It is 0.49 to 0.55 across the three models, while DeepEval faithfulness on
+the same reviews is 0.95 to 0.99. The two measure different things. DeepEval is given
+everything the writer was given. Ragas, as set up here, is given only the retrieved
+documentation passages, so every statement about the reviewed file itself ("the node
+pool has a fixed node count") counts as unsupported, because general documentation
+cannot say it. A check on the 7 judged Gemini reviews supports this: scoring the same
+saved advice again with the facts about the reviewed resources added to the context
+raised the mean from 0.49 to 0.87
+(`evals/results/20261110T141250Z_ragas_diagnostic.json`, one re-scoring). The metric's
+definition was not changed after seeing the result; the tables show it as first defined.
+What remains below 1.00 after the check was not examined statement by statement.
 
 **Which model to use.** On these numbers, `gemini-3.5-flash-lite` suits the
-interactive uses (UI and MCP tool) because it is ten times faster and every
-recommendation it wrote had a source, at a cost that is still a fraction of a cent. DeepSeek is
-the cheapest and writes more advice, but is slower and produced the one failure. MiMo
-writes the most advice and is the slowest. None of this says how a premium model would
-do.
+interactive uses (UI and MCP tool) because it is about six times faster, the steadiest
+between runs, and every recommendation it wrote had a source, at a cost that is still a
+fraction of a cent. It is the app's default. DeepSeek is the cheapest and MiMo writes
+the most advice; both are several times slower. None of this says how a premium model
+would do.
 
 ## Limitations
 
@@ -539,8 +636,17 @@ do.
   the injection surface. The protection that matters is structural: the LLM cannot
   alter security findings whatever it reads.
 - **LLM judges are imperfect.** Faithfulness and relevancy scores come from another
-  model and should be read as indicators. On this dataset faithfulness is saturated
-  (0.99 to 1.00 for every model), so it does not separate the models.
+  model and should be read as indicators. DeepEval faithfulness is 0.95 or higher for
+  every model, so it does not separate them. Each judged score rests on at most 14
+  reviews per model, and the Ragas scores on 5 to 12.
+- **Ragas faithfulness, as set up, undercounts.** It compares the advice with the
+  retrieved passages only, so correct statements about the reviewed file count against
+  the score (see Discussion). It is reported as defined, with that caveat.
+- **The ReAct baseline ran on one model.** A model that follows injected instructions
+  more readily, or a harder injection, could give the baseline a worse result than the
+  one measured; the test suite shows that case with a fake model only. Its false
+  findings were counted, not reviewed one by one, and the saved example of them is a
+  separate single review.
 - **Only low-cost models were compared.** The three models were chosen for price. The
   results show how cheap models differ; they do not show what a premium model adds.
 - **Ablations on one model, one run.** RAG and the rewrite loop were ablated only on
@@ -566,6 +672,10 @@ do.
   model with an independent judge.
 - Harder retrieval queries (services or questions the store covers poorly) to test
   whether the rewrite loop earns its place.
+- Run the ReAct baseline on more models and with harder injection samples, to find
+  where a tool-calling loop does get talked out of the security check.
+- A Ragas faithfulness setup that also gives the judge the facts about the reviewed
+  resources, defined before the run, so the score measures invention only.
 
 ## Repository layout
 
@@ -576,9 +686,10 @@ rag/            ingest.py, retriever.py, docs/ (notes on GCP documentation pages
 memory/         SQLite store and the feedback policy
 ui/             Streamlit app
 mcp_server/     MCP server exposing review_gcp_infra
-evals/          dataset/, run.py, report.py, results/
+evals/          dataset/, run.py, report.py, results/, judge.py (DeepEval),
+                ragas_judge.py (Ragas), react_baseline.py (ReAct agent), rejudge.py
 tests/          pytest tests mirroring the layout above
-docs/           PLAN, PROGRESS, DECISIONS, LEARNING_NOTES, tickets/
+docs/           PLAN, PROGRESS, DECISIONS, LEARNING_NOTES, tickets/, examples/, reviews/
 ```
 
 More detail: [`docs/DECISIONS.md`](docs/DECISIONS.md) explains each technical choice and

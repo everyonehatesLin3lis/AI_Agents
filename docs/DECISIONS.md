@@ -177,3 +177,46 @@ resources the API covers, while the evals still use a fixed table.
 
 **Given up.** The snapshot does not update itself. It has to be refreshed by hand,
 and the expected costs in `evals/dataset/` recalculated.
+
+## 16. A ReAct baseline, in the evals only
+
+**Decision.** `evals/react_baseline.py` is a ReAct agent with function calling over the
+same three tools as the graph. It is run only by the eval suite (`--configs full,react`).
+The UI and the MCP tool use the graph.
+
+**Why.** "A fixed graph is safer than a ReAct loop" was an argument, not a
+measurement. A baseline that returns the same `ReviewReport` lets the same metrics
+answer it. Keeping it in `evals/` leaves the product's architecture unchanged.
+
+**Given up.** The baseline ran on one model, and it has no hardening of its own (no
+check of its answer), so it shows what an unguarded loop does, not the best a ReAct
+design could do.
+
+## 17. Ragas for the RAG step, next to DeepEval
+
+**Decision.** Ragas scores two things about the RAG step: context precision and
+faithfulness of the recommendations to the retrieved passages. DeepEval keeps judging
+the whole advisory text. Both use the same judge model. Ragas response relevancy is not
+used: it needs an embeddings model, and DeepEval answer relevancy covers the question.
+
+**Why.** DeepEval's faithfulness is given everything the writer saw, so it cannot say
+whether the retrieved passages were useful. Ragas looks at the passages alone, which is
+what separates the graph's graded passages from the baseline's ungraded ones.
+
+**Given up.** Ragas faithfulness against passages alone counts correct statements about
+the reviewed file as unsupported (about 0.5 measured, 0.87 once the resource facts are
+added). The definition was kept as first written and the caveat is in the README.
+Adding Ragas also caps `langchain-community` below 0.4.2 and resolves the `openai` SDK
+to 3.3.0.
+
+## 18. Judged text is saved with each record
+
+**Decision.** Every judged eval record keeps the text the judges were given, and
+`evals/rejudge.py` scores a saved result file again with another judge.
+
+**Why.** The first runs kept only scores. Changing the judge, and later adding Ragas,
+each meant paying for the reviews again. Result files also record the git commit taken
+when the run started, so a commit made during a long run cannot mislabel it.
+
+**Given up.** Result files are larger. Files saved before this change cannot be judged
+again.
