@@ -25,6 +25,7 @@ from agent.summary import summarize_resources
 from evals.dataset_loader import Sample
 from evals.judge import Judge
 from evals.metrics import confusion, latency_stats, mean_or_none, share
+from evals.ragas_judge import RagasJudge
 from rag.ingest import load_chunks
 from tools.models import Category, Severity
 from tools.tf_parser import parse_terraform
@@ -96,6 +97,7 @@ def run_llm_eval(
     deps_factory: DepsFactory,
     prices: Prices,
     judge: Judge | None = None,
+    ragas_judge: RagasJudge | None = None,
     progress: Callable[[str], None] = print,
 ) -> list[dict[str, Any]]:
     """Run every (model, config, sample, run) combination and return one record each.
@@ -115,9 +117,11 @@ def run_llm_eval(
                         report = run_review(sample.terraform, f"eval-{config}", deps=deps)
                         record |= score_review(report, sample, valid_urls)
                         record["cost_usd"] = review_cost_usd(report, model, prices)
-                        if judge is not None and config == "full" and run == 1:
+                        if config == "full" and run == 1:  # judged once per sample: cost
                             summary = summarize_resources(parse_terraform(sample.terraform))
-                            record |= judge.score(report, summary)
+                            for scorer in (judge, ragas_judge):
+                                if scorer is not None:
+                                    record |= scorer.score(report, summary)
                     except Exception as exc:  # one broken review must not lose the whole run
                         record |= {"status": "crashed", "error": type(exc).__name__}
                     records.append(record)
@@ -189,6 +193,11 @@ def summarize(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "faithfulness_mean": mean_or_none(r.get("faithfulness") for r in ok),
                 "answer_relevancy_mean": mean_or_none(r.get("answer_relevancy") for r in ok),
                 "n_judged": sum(1 for r in ok if r.get("faithfulness") is not None),
+                "ragas_context_precision_mean": mean_or_none(
+                    r.get("ragas_context_precision") for r in ok
+                ),
+                "ragas_faithfulness_mean": mean_or_none(r.get("ragas_faithfulness") for r in ok),
+                "n_ragas_judged": sum(1 for r in ok if r.get("ragas_faithfulness") is not None),
             }
         )
     return rows

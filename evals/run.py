@@ -31,6 +31,7 @@ from evals.dataset_loader import load_samples
 from evals.deterministic import run_deterministic
 from evals.judge import Judge
 from evals.llm_eval import CONFIGS, run_llm_eval, summarize
+from evals.ragas_judge import RagasJudge
 from memory.store import MemoryStore
 from rag.ingest import build_store
 from rag.retriever import search_gcp_docs
@@ -120,14 +121,16 @@ def run_llm_part(args: argparse.Namespace, base: Settings) -> Path | None:
     configs = {m: (config_names if i == 0 else ["full"]) for i, m in enumerate(models)}
     samples = load_samples()[: args.limit] if args.limit else load_samples()
     prices, price_source = fetch_model_prices(models)
-    judge = None
+    judge = ragas_judge = None
     if not args.no_judge:
         judge_settings = base.model_copy(update={"model": args.judge_model})
-        judge = Judge(get_chat_model(judge_settings), args.judge_model)
+        judge_model = get_chat_model(judge_settings)
+        judge = Judge(judge_model, args.judge_model)
+        ragas_judge = RagasJudge(judge_model, args.judge_model)  # same judge, RAG step only
     with tempfile.TemporaryDirectory() as memory_dir:
         records = run_llm_eval(
             models, configs, args.runs, samples,
-            make_deps_factory(base, Path(memory_dir)), prices, judge,
+            make_deps_factory(base, Path(memory_dir)), prices, judge, ragas_judge,
         )  # fmt: skip
     payload = {
         "meta": {
@@ -156,7 +159,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--runs", type=int, default=3, help="reviews per sample and config")
     parser.add_argument("--limit", type=int, default=0, help="use only the first N samples")
     parser.add_argument("--judge-model", default=DEFAULT_JUDGE)
-    parser.add_argument("--no-judge", action="store_true", help="skip the DeepEval metrics")
+    parser.add_argument(
+        "--no-judge", action="store_true", help="skip the DeepEval and Ragas metrics"
+    )
     parser.add_argument("--deterministic-only", action="store_true")
     parser.add_argument("--llm-only", action="store_true")
     parser.add_argument("--repeats", type=int, default=20, help="tool timing repetitions")
