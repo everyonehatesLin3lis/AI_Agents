@@ -109,3 +109,18 @@ def test_samples_are_listed_and_served_and_unknown_names_are_not_found(make_clie
         in client.get("/api/samples/mixed/web_stack.tf").json()["terraform"]
     )
     assert client.get("/api/samples/expected.json").status_code == 404
+
+
+def test_empty_report_fields_are_sent_as_null_not_left_out(make_client, make_llm):
+    """The UI's types say a finding always has these fields. A field that is silently
+    missing crashed the page once: `estimated_savings` was undefined instead of null."""
+    client = make_client(make_llm(WRITER))
+
+    events = _events(client.post("/api/reviews", json={"terraform": SQL_OPEN.terraform}))
+    report = events[-1]["report"]
+
+    for finding in report["findings"]:
+        assert {"estimated_savings", "source_url", "rule_id", "deprioritized"} <= finding.keys()
+    assert report["findings"][0]["estimated_savings"] is None
+    assert "cost_usd" in report["usage"]
+    assert "step" not in events[-1]  # unused event fields are still left out

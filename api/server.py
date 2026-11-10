@@ -18,6 +18,7 @@ Routes:
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterator
 from typing import Annotated
 
@@ -88,7 +89,10 @@ def create_app(service: ReviewService | None = None) -> FastAPI:
         def lines() -> Iterator[str]:
             events = service.stream_review(request.terraform, request.project_id, request.options)
             for event in events:
-                yield event.model_dump_json(exclude_none=True) + "\n"
+                # Leave out the event's own unused fields, but send the report whole:
+                # the UI expects every report field, with null for "nothing".
+                data = event.model_dump(mode="json")
+                yield json.dumps({k: v for k, v in data.items() if v is not None}) + "\n"
 
         # One JSON object per line, sent as each step finishes, so the UI can show progress.
         return StreamingResponse(lines(), media_type="application/x-ndjson")
