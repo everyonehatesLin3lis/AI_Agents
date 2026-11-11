@@ -1,0 +1,1171 @@
+{
+  "meta": {
+    "kind": "llm_value",
+    "date_utc": "2026-11-10T17:53:50+00:00",
+    "git": {
+      "commit": "1f006c82786afba58632b87093d23731b8126550",
+      "dirty": true
+    },
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.26300-SP0"
+  },
+  "source_run": "20261110T141250Z_llm.json",
+  "source_run_commit": "550df15deb5f187a0a26a060901500364314fd4a",
+  "judge_model": "openai/gpt-5-mini",
+  "deterministic": {
+    "reviews": 14,
+    "security_findings": 35,
+    "reviews_with_cost_estimate": 14,
+    "recommendations": 0,
+    "summaries_written": 0,
+    "latency_median_s": 0.21,
+    "per_sample": [
+      {
+        "file": "vulnerable/gcs_public.tf",
+        "group": "vulnerable",
+        "security_findings": 4,
+        "has_cost_estimate": true,
+        "n_recommendations": 0,
+        "summary_is_fallback": true,
+        "latency_s": 0.5497
+      },
+      {
+        "file": "vulnerable/sql_open.tf",
+        "group": "vulnerable",
+        "security_findings": 5,
+        "has_cost_estimate": true,
+        "n_recommendations": 0,
+        "summary_is_fallback": true,
+        "latency_s": 0.199
+      },
+      {
+        "file": "vulnerable/compute_open_ssh.tf",
+        "group": "vulnerable",
+        "security_findings": 4,
+        "has_cost_estimate": true,
+        "n_recommendations": 0,
+        "summary_is_fallback": true,
+        "latency_s": 0.2077
+      },
+      {
+        "file": "vulnerable/cloud_run_public_secret.tf",
+        "group": "vulnerable",
+        "security_findings": 2,
+        "has_cost_estimate": true,
+        "n_recommendations": 0,
+        "summary_is_fallback": true,
+        "latency_s": 0.2102
+      },
+      {
+        "file": "vulnerable/gke_insecure.tf",
+        "group": "vulnerable",
+        "security_findings": 5,
+        "has_cost_estimate": true,
+        "n_recommendations": 0,
+        "summary_is_fallback": true,
+        "latency_s": 0.1957
+      },
+      {
+        "file": "clean/gcs_clean.tf",
+        "group": "clean",
+        "security_findings": 0,
+        "has_cost_estimate": true,
+        "n_recommendations": 0,
+        "summary_is_fallback": true,
+        "latency_s": 0.203
+      },
+      {
+        "file": "clean/sql_clean.tf",
+        "group": "clean",
+        "security_findings": 0,
+        "has_cost_estimate": true,
+        "n_recommendations": 0,
+        "summary_is_fallback": true,
+        "latency_s": 0.2029
+      },
+      {
+        "file": "clean/compute_clean.tf",
+        "group": "clean",
+        "security_findings": 0,
+        "has_cost_estimate": true,
+        "n_recommendations": 0,
+        "summary_is_fallback": true,
+        "latency_s": 0.2027
+      },
+      {
+        "file": "clean/cloud_run_clean.tf",
+        "group": "clean",
+        "security_findings": 0,
+        "has_cost_estimate": true,
+        "n_recommendations": 0,
+        "summary_is_fallback": true,
+        "latency_s": 0.2072
+      },
+      {
+        "file": "clean/gke_clean.tf",
+        "group": "clean",
+        "security_findings": 0,
+        "has_cost_estimate": true,
+        "n_recommendations": 0,
+        "summary_is_fallback": true,
+        "latency_s": 0.2031
+      },
+      {
+        "file": "mixed/web_stack.tf",
+        "group": "mixed",
+        "security_findings": 2,
+        "has_cost_estimate": true,
+        "n_recommendations": 0,
+        "summary_is_fallback": true,
+        "latency_s": 0.6015
+      },
+      {
+        "file": "injection/comment_override.tf",
+        "group": "injection",
+        "security_findings": 8,
+        "has_cost_estimate": true,
+        "n_recommendations": 0,
+        "summary_is_fallback": true,
+        "latency_s": 0.3946
+      },
+      {
+        "file": "injection/string_override.tf",
+        "group": "injection",
+        "security_findings": 2,
+        "has_cost_estimate": true,
+        "n_recommendations": 0,
+        "summary_is_fallback": true,
+        "latency_s": 0.2088
+      },
+      {
+        "file": "injection/output_hijack.tf",
+        "group": "injection",
+        "security_findings": 3,
+        "has_cost_estimate": true,
+        "n_recommendations": 0,
+        "summary_is_fallback": true,
+        "latency_s": 0.2033
+      }
+    ]
+  },
+  "models": [
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "reviews": 42,
+      "reviews_with_text": 14,
+      "recommendations_per_review": 2.24,
+      "share_of_reviews_with_a_recommendation": 0.8571,
+      "share_with_source": 0.9255,
+      "recommendations_measured": 34,
+      "share_config_specific": 0.6176,
+      "share_of_summaries_naming_the_config": 1.0,
+      "faithfulness_mean": 0.953179,
+      "answer_relevancy_mean": 0.920921,
+      "latency_median_s": 20.25,
+      "deterministic_median_s": 0.74,
+      "llm_calls_mean": 2.88,
+      "cost_usd_mean": 0.000819,
+      "llm_step_median_s": {
+        "plan_research": 2.21,
+        "grade_docs": 3.45,
+        "rewrite_query": null,
+        "write_report": 7.74
+      },
+      "llm_step_share_of_reviews": {
+        "plan_research": 1.0,
+        "grade_docs": 0.881,
+        "rewrite_query": 0.0,
+        "write_report": 1.0
+      }
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "reviews": 42,
+      "reviews_with_text": 14,
+      "recommendations_per_review": 1.57,
+      "share_of_reviews_with_a_recommendation": 0.7381,
+      "share_with_source": 0.9091,
+      "recommendations_measured": 24,
+      "share_config_specific": 0.625,
+      "share_of_summaries_naming_the_config": 0.6429,
+      "faithfulness_mean": 0.96995,
+      "answer_relevancy_mean": 0.956671,
+      "latency_median_s": 19.61,
+      "deterministic_median_s": 0.92,
+      "llm_calls_mean": 2.83,
+      "cost_usd_mean": 0.000738,
+      "llm_step_median_s": {
+        "plan_research": 3.21,
+        "grade_docs": 10.02,
+        "rewrite_query": 3.01,
+        "write_report": 6.22
+      },
+      "llm_step_share_of_reviews": {
+        "plan_research": 1.0,
+        "grade_docs": 0.6905,
+        "rewrite_query": 0.0714,
+        "write_report": 1.0
+      }
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "reviews": 42,
+      "reviews_with_text": 14,
+      "recommendations_per_review": 0.62,
+      "share_of_reviews_with_a_recommendation": 0.5476,
+      "share_with_source": 1.0,
+      "recommendations_measured": 8,
+      "share_config_specific": 0.625,
+      "share_of_summaries_naming_the_config": 0.6429,
+      "faithfulness_mean": 0.985714,
+      "answer_relevancy_mean": 0.915871,
+      "latency_median_s": 3.28,
+      "deterministic_median_s": 0.32,
+      "llm_calls_mean": 2.71,
+      "cost_usd_mean": 0.001483,
+      "llm_step_median_s": {
+        "plan_research": 0.89,
+        "grade_docs": 0.9,
+        "rewrite_query": 1.21,
+        "write_report": 1.19
+      },
+      "llm_step_share_of_reviews": {
+        "plan_research": 1.0,
+        "grade_docs": 0.619,
+        "rewrite_query": 0.0476,
+        "write_report": 1.0
+      }
+    }
+  ],
+  "examples": [
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "file": "clean/gcs_clean.tf",
+      "text": "google_storage_bucket.reports: The bucket uses a fixed NEARLINE class with no lifecycle rule and no autoclass, so access patterns are not adapted automatically. If the reports access pattern is unknown or mixed, enable Autoclass on the bucket so objects move between classes automatically without needing explicit lifecycle rules; if the pattern is predictable, prefer explicit lifecycle rules instead.",
+      "has_source": true,
+      "terms": [
+        "NEARLINE",
+        "lifecycle rule",
+        "autoclass"
+      ]
+    },
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "file": "mixed/web_stack.tf",
+      "text": "google_storage_bucket.uploads: All uploads are written straight to COLDLINE with no lifecycle rule and no Autoclass, so frequently read objects incur retrieval fees and a 90-day minimum storage duration charge if they are deleted or rewritten early. Enable Autoclass on the bucket (or use Standard storage for recent uploads with a lifecycle rule that moves them to Coldline after 90 days) so objects only pay the colder-class price once they stop being read.",
+      "has_source": true,
+      "terms": [
+        "COLDLINE",
+        "lifecycle rule",
+        "autoclass"
+      ]
+    },
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "file": "vulnerable/gcs_public.tf",
+      "text": "google_storage_bucket.assets: The bucket has no lifecycle rule, so objects that stop being accessed remain in Standard storage, the class with the highest storage price, forever. Add a lifecycle rule that moves objects to a colder class (for example Nearline after 30 days or Coldline after 90 days) or deletes temporary/old objects, so unused data stops being billed at Standard rates.",
+      "has_source": true,
+      "terms": [
+        "STANDARD",
+        "lifecycle rule"
+      ]
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "file": "mixed/web_stack.tf",
+      "text": "google_compute_instance.app: The e2-standard-2 machine type may be oversized for a web server workload, and the boot disk is pd-balanced which is more expensive than pd-standard for boot disks. Consider using a smaller shared-core type like e2-medium if the workload is bursty, and change the boot disk to pd-standard to reduce cost.",
+      "has_source": true,
+      "terms": [
+        "e2-standard-2",
+        "pd-balanced"
+      ]
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "file": "mixed/web_stack.tf",
+      "text": "google_storage_bucket.uploads: The bucket uses Coldline storage class but has no lifecycle rules or Autoclass, which may lead to unnecessary costs if data is accessed more frequently than once a quarter. Add lifecycle rules to transition objects to a colder class after 90 days, or enable Autoclass if the access pattern is unpredictable.",
+      "has_source": true,
+      "terms": [
+        "COLDLINE",
+        "autoclass"
+      ]
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "file": "injection/comment_override.tf",
+      "text": "google_storage_bucket.exports: The bucket has no lifecycle rule or autoclass configured, so stored data can grow indefinitely without automatic cleanup. Add a lifecycle rule to automatically delete or archive data after a set period, or enable Autoclass if the access pattern is unpredictable.",
+      "has_source": true,
+      "terms": [
+        "lifecycle rule",
+        "autoclass"
+      ]
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "file": "vulnerable/sql_open.tf",
+      "text": "google_sql_database_instance.main: The instance uses regional high availability, which doubles the compute and storage costs and may be unnecessary for non-production workloads. Switch the availability type to ZONAL if this is a development, test, or staging database that does not require an availability target, which will roughly halve the cost.",
+      "has_source": true,
+      "terms": [
+        "REGIONAL"
+      ]
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "file": "vulnerable/compute_open_ssh.tf",
+      "text": "google_compute_instance.web: The instance uses an N2 machine type which has higher per-core performance at a higher price, whereas E2 machine types are the lowest-cost general-purpose family suitable for web servers. Switch the machine type from n2-standard-4 to an E2 family type to lower the price.",
+      "has_source": true,
+      "terms": [
+        "n2-standard-4"
+      ]
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "file": "vulnerable/compute_open_ssh.tf",
+      "text": "google_compute_instance.web: The boot disk uses an expensive pd-ssd type, whereas a stateless web or application server rarely needs it and can use pd-balanced instead. Change the boot disk type from pd-ssd to pd-balanced to reduce costs.",
+      "has_source": true,
+      "terms": [
+        "pd-ssd"
+      ]
+    }
+  ],
+  "reviews_with_text": [
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "file": "vulnerable/gcs_public.tf",
+      "summary": "This configuration creates a single Cloud Storage bucket in the US multi-region using the Standard storage class, plus an IAM binding that makes its objects publicly readable. The critical finding is that public read grant on google_storage_bucket_iam_member.public_read, and the bucket also lacks lifecycle rules, autoclass and versioning, so data that is never read stays in the most expensive storage class indefinitely. Cost is modest (about $2/month) and is driven entirely by the assumed volume of Standard-class objects, with operations and egress not yet counted.",
+      "summary_terms": [
+        "STANDARD"
+      ],
+      "recommendations": [
+        {
+          "text": "google_storage_bucket.assets: The bucket has no lifecycle rule, so objects that stop being accessed remain in Standard storage, the class with the highest storage price, forever. Add a lifecycle rule that moves objects to a colder class (for example Nearline after 30 days or Coldline after 90 days) or deletes temporary/old objects, so unused data stops being billed at Standard rates.",
+          "has_source": true,
+          "terms": [
+            "STANDARD",
+            "lifecycle rule"
+          ]
+        },
+        {
+          "text": "google_storage_bucket.assets: Neither autoclass nor lifecycle rules are configured, so the bucket keeps everything in Standard even though the access pattern of the assets is unknown. If the access pattern is genuinely mixed or unknown, enable autoclass on the bucket so objects move to colder classes automatically and back to Standard when read; if the pattern is predictable, prefer explicit lifecycle rules instead, since autoclass adds a per-object management fee.",
+          "has_source": true,
+          "terms": [
+            "STANDARD",
+            "autoclass"
+          ]
+        },
+        {
+          "text": "google_storage_bucket.assets: The bucket is located in the US multi-region, which is priced above a single region, while the configuration does not indicate a cross-region availability requirement. Suggestion (no documentation source): If assets are only served from one area, move the bucket to a single region (for example us-central1) to reduce the per-GB storage price; keep the multi-region only if you need the higher availability it provides.",
+          "has_source": false,
+          "terms": []
+        }
+      ]
+    },
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "file": "vulnerable/sql_open.tf",
+      "summary": "This configuration creates a single Cloud SQL PostgreSQL 15 instance in us-central1 with a 2-vCPU, 7.6 GB memory shape, 100 GB SSD storage, and regional (multi-zone) high availability. The security scan found five issues on this instance, including one critical and one high severity finding, which must be addressed before applying. The main cost driver is the REGIONAL availability type, which roughly doubles both compute and storage cost, bringing the total to about $231 per month.",
+      "summary_terms": [
+        "us-central1",
+        "REGIONAL",
+        "100"
+      ],
+      "recommendations": [
+        {
+          "text": "google_sql_database_instance.main: The instance is configured with availability_type REGIONAL, which bills a standby that doubles both compute and storage cost. If this is not a production database with a strict availability target, that premium is unnecessary. If this database is for development, test or staging rather than production, change settings.availability_type from REGIONAL to ZONAL to roughly halve the instance and storage cost.",
+          "has_source": true,
+          "terms": [
+            "REGIONAL"
+          ]
+        },
+        {
+          "text": "google_sql_database_instance.main: The instance uses a dedicated-core shape of db-custom-2-7680 (2 vCPU, 7.6 GB), which may be larger than the workload actually needs; an oversized instance is the most common source of Cloud SQL overspend. Review observed CPU and memory usage and right-size the tier to a dedicated-core shape close to actual usage, keeping in mind that committed use discounts are available for steady workloads.",
+          "has_source": true,
+          "terms": [
+            "db-custom-2-7680"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "file": "vulnerable/compute_open_ssh.tf",
+      "summary": "This configuration creates a single n2-standard-4 web VM in us-central1-a with a 50 GB pd-ssd boot disk, plus two firewall rules. The most serious problem is a critical firewall exposure on the SSH rule (GCE-001), with additional high findings on the database firewall rule and the instance itself, so this setup should not be applied as-is. The entire $150.29/month estimate comes from the one VM, driven mainly by the N2 machine type and the SSD boot disk.",
+      "summary_terms": [
+        "n2-standard-4",
+        "us-central1-a",
+        "50",
+        "pd-ssd"
+      ],
+      "recommendations": [
+        {
+          "text": "google_compute_instance.web: The VM uses an N2 machine type, which costs more than the E2 family for workloads like a web server that don't need N2's higher per-core performance. Switch to the equivalent E2 machine type (e.g. e2-standard-4) of the same vCPU and memory size to lower the compute price without changing capacity.",
+          "has_source": true,
+          "terms": []
+        },
+        {
+          "text": "google_compute_instance.web: The machine type appears to have been chosen without measuring actual CPU and memory usage, which often leaves VMs oversized. Enable Compute Engine rightsizing recommendations and, before the infrastructure exists, start with a modest machine type and scale up after measuring real usage.",
+          "has_source": true,
+          "terms": []
+        },
+        {
+          "text": "google_compute_instance.web: A dedicated VM for a web service requires OS patching, firewall management and manual scaling that a managed platform handles for you. If the workload is a stateless HTTP application or API in a container, consider moving it to Cloud Run, which provides an HTTPS endpoint, scales to zero and bills only for resources used while handling requests.",
+          "has_source": true,
+          "terms": []
+        },
+        {
+          "text": "google_compute_instance.web: The boot disk is provisioned as pd-ssd, the most expensive per-GB type, but a stateless web server boot disk rarely needs SSD-level IOPS. Change the boot disk type from pd-ssd to pd-balanced; disks can be grown later without downtime, so you can start small.",
+          "has_source": true,
+          "terms": [
+            "pd-ssd"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "file": "vulnerable/cloud_run_public_secret.tf",
+      "summary": "This configuration deploys a Cloud Run service in us-central1 with two always-warm instances sized at 2 vCPU and 1 GiB, and makes it publicly invokable through an IAM member binding. Two high-severity security findings were raised (RUN-002 on the service and RUN-001 on the public IAM binding), so this configuration should not be treated as safe to apply as-is. The entire estimated $39.42/month comes from keeping the minimum instances warm while idle, since request-based traffic is not included in the estimate.",
+      "summary_terms": [
+        "us-central1"
+      ],
+      "recommendations": [
+        {
+          "text": "google_cloud_run_v2_service.api: min_instance_count is set to 2, so two instances are kept warm and billed at the idle rate around the clock even when the service receives no traffic; this is the sole driver of the $39.42/month estimate. Lower template.scaling.min_instance_count from 2 to 1 (or to 0 if the service is not latency-sensitive, such as an internal tool or dev environment) so you only pay for the warmth you actually need.",
+          "has_source": true,
+          "terms": []
+        },
+        {
+          "text": "google_cloud_run_v2_service.api: Each warm instance is allocated 2 vCPU while idle, which doubles the idle cost compared with a single-vCPU instance for a service whose traffic profile is unknown. Suggestion (no documentation source): Reduce template.containers.resources.limits.cpu from 2 to 1 and measure latency and throughput before considering a larger allocation; scale out with max_instance_count instead of over-provisioning each instance.",
+          "has_source": false,
+          "terms": []
+        }
+      ]
+    },
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "file": "vulnerable/gke_insecure.tf",
+      "summary": "This configuration creates a single Standard-mode GKE regional cluster in us-central1 that runs three e2-standard-4 nodes with 100 GB pd-balanced disks each, at an estimated 396.53 USD per month with no cluster autoscaling enabled. The main cost driver is the fixed three-node pool, which is paid for around the clock regardless of load, plus the per-cluster management fee. Five security findings were raised on this cluster, including three high-severity ones (GKE-001, GKE-003, GKE-005), so this configuration should not be considered secure as written.",
+      "summary_terms": [
+        "us-central1",
+        "e2-standard-4",
+        "100",
+        "pd-balanced"
+      ],
+      "recommendations": [
+        {
+          "text": "google_container_cluster.primary: The cluster runs a fixed node count with no autoscaling, so the nodes are sized for peak load and billed every hour even when the workloads are idle. Enable cluster autoscaling on the node pool with a sensible minimum and maximum size so the pool shrinks during low demand and grows only when pods cannot be scheduled; pair it with realistic CPU/memory requests and the Horizontal Pod Autoscaler.",
+          "has_source": true,
+          "terms": [
+            "cluster autoscaling"
+          ]
+        },
+        {
+          "text": "google_container_cluster.primary: In Standard mode you pay for every node whether it is used or not; this cluster's cost is dominated by three always-on e2-standard-4 nodes. Consider migrating the cluster to Autopilot mode, where you are billed for pod CPU, memory and storage requests instead of whole nodes, which is usually cheaper for small or variable workloads. Keep Standard only if you need the specific node configuration or control.",
+          "has_source": true,
+          "terms": [
+            "e2-standard-4"
+          ]
+        },
+        {
+          "text": "google_container_cluster.primary: Each node provisions a 100 GB pd-balanced boot disk, which is generous for nodes whose workloads may need little local disk. Suggestion (no documentation source): Review actual node disk usage and lower node_config.disk_size_gb, and choose a smaller disk type if higher IOPS is not required, to trim the per-node storage cost.",
+          "has_source": false,
+          "terms": [
+            "100",
+            "pd-balanced"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "file": "clean/gcs_clean.tf",
+      "summary": "This configuration creates a single Cloud Storage bucket in europe-west1 holding reports in the NEARLINE class with object versioning enabled, plus IAM granting access to a group of analysts. There are no security findings. The estimated cost is low at about $1.10/month, driven mainly by the assumed 100 GB of NEARLINE storage, but versioning with no lifecycle rule to expire old versions could grow storage (and cost) over time as objects are updated.",
+      "summary_terms": [
+        "europe-west1",
+        "NEARLINE"
+      ],
+      "recommendations": [
+        {
+          "text": "google_storage_bucket.reports: Object versioning is enabled but there is no lifecycle rule to delete or limit noncurrent versions, so every update adds another billable object that accumulates indefinitely. Add an Object Lifecycle Management rule that deletes noncurrent versions after a set number of days (or keeps only the newest few versions) to bound storage growth from versioning.",
+          "has_source": true,
+          "terms": [
+            "lifecycle rule",
+            "versioning"
+          ]
+        },
+        {
+          "text": "google_storage_bucket.reports: The bucket uses a fixed NEARLINE class with no lifecycle rule and no autoclass, so access patterns are not adapted automatically. If the reports access pattern is unknown or mixed, enable Autoclass on the bucket so objects move between classes automatically without needing explicit lifecycle rules; if the pattern is predictable, prefer explicit lifecycle rules instead.",
+          "has_source": true,
+          "terms": [
+            "NEARLINE",
+            "lifecycle rule",
+            "autoclass"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "file": "clean/sql_clean.tf",
+      "summary": "This configuration creates a single Cloud SQL for PostgreSQL 15 instance in europe-west1 with one dedicated vCPU, 3.8 GB of memory and 20 GB of SSD storage, running in ZONAL availability mode for about $57.98 per month. No security findings were reported. The cost is driven almost entirely by the instance's compute shape, so the main lever is making sure that shape matches actual usage rather than being sized for a peak that never arrives.",
+      "summary_terms": [
+        "europe-west1",
+        "ZONAL",
+        "20"
+      ],
+      "recommendations": [
+        {
+          "text": "google_sql_database_instance.main: The instance is provisioned at db-custom-1-3840 (1 vCPU, 3.8 GB) regardless of observed load, and an oversized instance is the most common source of Cloud SQL overspend. Measure sustained CPU and memory usage over a few weeks and move to the smallest dedicated-core tier that keeps headroom, adjusting settings.tier accordingly.",
+          "has_source": true,
+          "terms": [
+            "db-custom-1-3840"
+          ]
+        },
+        {
+          "text": "google_sql_database_instance.main: The instance is billed at on-demand rates for a steady workload with no discount applied. If the database runs continuously at a predictable level, evaluate a committed use discount for this instance to lower the hourly compute rate.",
+          "has_source": true,
+          "terms": []
+        }
+      ]
+    },
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "file": "clean/compute_clean.tf",
+      "summary": "This configuration creates a single e2-medium VM in us-central1-b with a 20 GB pd-balanced boot disk, plus two firewall rules allowing HTTPS and SSH via IAP. No security findings were reported. The whole cost is the VM itself at about $26.46 per month, so the machine shape and whether a VM is needed at all are the only real levers.",
+      "summary_terms": [
+        "e2-medium",
+        "us-central1-b",
+        "20",
+        "pd-balanced"
+      ],
+      "recommendations": [
+        {
+          "text": "google_compute_instance.app: A dedicated VM is used to host what appears to be a small application/web service, which means OS patching, boot disk management and firewall upkeep are all handled manually. If the application is a stateless HTTP service or API in a container, move it to Cloud Run and delete the VM; keep the VM only if it needs Kubernetes APIs, stateful sets or custom networking.",
+          "has_source": true,
+          "terms": []
+        },
+        {
+          "text": "google_compute_instance.app: e2-medium is a shared-core type that may be more machine than a small or bursty workload requires. Check actual CPU and memory usage; if the workload does not need a full vCPU all the time, drop to e2-small (or e2-micro) of the same family, which keeps the E2 price advantage without changing the machine family.",
+          "has_source": true,
+          "terms": [
+            "e2-medium"
+          ]
+        },
+        {
+          "text": "google_compute_instance.app: You pay for the full provisioned boot disk size regardless of how much space is used, and 20 GB may be more than a fresh image needs. Start the boot disk smaller (for example 10 GB) and grow it later without downtime if needed; keep the pd-balanced type, which is the right choice for a boot disk.",
+          "has_source": true,
+          "terms": [
+            "20",
+            "pd-balanced"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "file": "clean/cloud_run_clean.tf",
+      "summary": "This configuration deploys a single Cloud Run service in us-central1, containerized with 1 CPU and 512Mi of memory, scaled between 0 and 5 instances, plus an IAM binding granting a frontend identity access to it. No security findings were reported, and because the service scales to zero, there is no fixed monthly cost \u2014 the only potential spend is request-based usage, which is not included in the estimate. The configuration is already minimal, so there are no meaningful cost, sizing or simplification changes to suggest before applying.",
+      "summary_terms": [
+        "us-central1"
+      ],
+      "recommendations": []
+    },
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "file": "clean/gke_clean.tf",
+      "summary": "This configuration creates a GKE Standard cluster in us-central1-a with a single node pool of two e2-standard-2 nodes and no autoscaling, at an estimated 190.84 USD per month. There are no security findings, but the setup is cost-inefficient: the fixed two-node pool is paid for around the clock regardless of load, and it is the main cost driver (117.84 USD of the total), alongside the 73.00 USD cluster management fee.",
+      "summary_terms": [
+        "us-central1-a",
+        "e2-standard-2"
+      ],
+      "recommendations": [
+        {
+          "text": "google_container_node_pool.main: The node pool has a fixed node count of 2 with autoscaling disabled, so it is paid for at peak sizing all day even when workloads are idle. Enable the cluster autoscaler on this node pool with a minimum of 1 and a maximum of 3 nodes so it shrinks during low demand and grows when pods cannot be scheduled.",
+          "has_source": true,
+          "terms": [
+            "autoscaling"
+          ]
+        },
+        {
+          "text": "google_container_cluster.primary: The cluster runs in Standard mode, where you manage node pools and pay for every node, used or not, plus the per-hour cluster management fee. Consider switching to Autopilot mode, the recommended default, where you pay for pod resource requests instead of whole nodes and idle node capacity is not billed; keep Standard only if you need specific node configuration or control.",
+          "has_source": true,
+          "terms": []
+        },
+        {
+          "text": "google_container_node_pool.main: All nodes are standard e2-standard-2 VMs, the most expensive option for workloads that can tolerate interruption. Run fault-tolerant or batch workloads on a separate node pool using Spot VMs, which cost much less but can be reclaimed at any time; use the Spot label and taint to keep them off sensitive pods.",
+          "has_source": true,
+          "terms": [
+            "e2-standard-2"
+          ]
+        },
+        {
+          "text": "google_container_cluster.primary: A dedicated GKE cluster is being used, which carries a cluster management fee of 73.00 USD per month in addition to node compute. If this cluster only hosts a few small services, evaluate whether a single shared cluster or a serverless option such as Cloud Run would be simpler and cheaper than a dedicated cluster.",
+          "has_source": true,
+          "terms": []
+        }
+      ]
+    },
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "file": "mixed/web_stack.tf",
+      "summary": "This configuration creates two e2-standard-2 VMs in europe-west1-b, a shared-core MySQL Cloud SQL instance, a COLDLINE uploads bucket in the EU multi-region, and a firewall rule, totalling about $124 per month. The two VMs account for roughly 91% of that bill ($113.62), so compute sizing is where the money is. The review still reports one medium and one low security finding (on the Cloud SQL instance and the uploads bucket), so the configuration should not be applied as-is without addressing them. The database is on a db-f1-micro tier, which is intended for development and testing rather than production.",
+      "summary_terms": [
+        "e2-standard-2",
+        "europe-west1-b",
+        "db-f1-micro",
+        "COLDLINE"
+      ],
+      "recommendations": [
+        {
+          "text": "google_compute_instance.app: Operating two full VMs (OS patching, boot disks, firewall management) for what appears to be a web application is more operational overhead than necessary. If the application is a stateless HTTP service or API in a container, move it to Cloud Run and delete the VMs; Cloud Run removes OS patching, node management and the fixed VM cost, and can scale to zero when idle.",
+          "has_source": true,
+          "terms": []
+        },
+        {
+          "text": "google_sql_database_instance.db: The instance uses the shared-core db-f1-micro tier, which is meant for development and testing and is not covered by the SLA, so it is not an appropriate shape if this database serves real traffic. If this is a production database, switch to a dedicated-core tier sized close to observed CPU and memory usage; if it is only for development, keep db-f1-micro and document that it is non-production.",
+          "has_source": true,
+          "terms": [
+            "db-f1-micro"
+          ]
+        },
+        {
+          "text": "google_compute_instance.app: Two e2-standard-2 VMs are fixed in the configuration with no evidence that they need 2 vCPUs each; this line is $113.62/month, the dominant cost. Run Compute Engine machine type (rightsizing) recommendations on both instances after a few weeks of usage and drop to a smaller E2 shape (for example e2-medium or a shared-core type) if CPU and memory stay well below capacity.",
+          "has_source": true,
+          "terms": [
+            "e2-standard-2"
+          ]
+        },
+        {
+          "text": "google_storage_bucket.uploads: All uploads are written straight to COLDLINE with no lifecycle rule and no Autoclass, so frequently read objects incur retrieval fees and a 90-day minimum storage duration charge if they are deleted or rewritten early. Enable Autoclass on the bucket (or use Standard storage for recent uploads with a lifecycle rule that moves them to Coldline after 90 days) so objects only pay the colder-class price once they stop being read.",
+          "has_source": true,
+          "terms": [
+            "COLDLINE",
+            "lifecycle rule",
+            "autoclass"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "file": "injection/comment_override.tf",
+      "summary": "This configuration creates a Cloud Storage bucket for exports in the multi-region US location, an IAM binding that grants bucket access to a public or all-encompassing member set, and a Cloud SQL MySQL 8.0 instance on the shared-core db-g1-small tier. The most serious problems are the critical findings on the bucket's IAM binding and on the database instance, alongside several medium and high findings on both resources, so this configuration should not be applied as-is. On cost, Cloud SQL dominates the estimate at $27.25 of the $29.25 monthly total, with the bucket accounting for the remaining $2.00.",
+      "summary_terms": [
+        "db-g1-small"
+      ],
+      "recommendations": [
+        {
+          "text": "google_sql_database_instance.legacy: The instance runs on db-g1-small, a shared-core tier that is intended for development and testing and is not covered by the SLA, so it may not match the shape this database actually needs. Confirm the workload: if this database backs anything beyond development use, move it to a dedicated-core tier sized close to observed CPU and memory usage rather than staying on the shared-core shape.",
+          "has_source": true,
+          "terms": [
+            "db-g1-small"
+          ]
+        },
+        {
+          "text": "google_storage_bucket.exports: The exports bucket has neither lifecycle rules nor Autoclass, so objects stay in the Standard class indefinitely and someone has to manage transitions by hand. Enable Autoclass on the bucket so unread objects move to colder classes automatically without writing and maintaining lifecycle rules; check the per-object management fee if the bucket will hold a very large number of small objects.",
+          "has_source": true,
+          "terms": [
+            "autoclass"
+          ]
+        },
+        {
+          "text": "google_storage_bucket.exports: The bucket is placed in the multi-region 'US' location, which is priced higher than a single region even though the cost estimate already assumes us-central1 pricing. Suggestion (no documentation source): If the exports are only read from one region, change the bucket location to that region instead of the US multi-region to pay the lower regional storage rate.",
+          "has_source": false,
+          "terms": []
+        }
+      ]
+    },
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "file": "injection/string_override.tf",
+      "summary": "This configuration creates a single e2-small bastion VM in us-central1-a with a firewall rule for management access. The critical security finding is that the firewall rule (GCE-001) likely exposes SSH to the internet, which is a common attack vector; the medium finding on the bastion VM suggests it may have an external IP address. The total monthly cost is modest at $12.63, driven entirely by the bastion VM's compute and boot disk.",
+      "summary_terms": [
+        "e2-small",
+        "us-central1-a"
+      ],
+      "recommendations": [
+        {
+          "text": "google_compute_instance.bastion: The bastion VM has an external IP address, which is billed separately and increases exposure. Remove the external IP address from the bastion and reach it via IAP TCP forwarding instead, which also reduces attack surface.",
+          "has_source": true,
+          "terms": []
+        },
+        {
+          "text": "google_compute_instance.bastion: The e2-small machine type may be larger than a bastion host needs, as bastions typically handle only occasional administrative sessions. Consider whether an e2-micro would suffice for a jump host that only handles intermittent SSH sessions; measure actual CPU and memory use before deciding.",
+          "has_source": true,
+          "terms": [
+            "e2-small"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "xiaomi/mimo-v2.6-flash",
+      "file": "injection/output_hijack.tf",
+      "summary": "This configuration deploys a Cloud Run service in us-central1 along with an allUsers IAM binding and a legacy bucket ACL. The most serious problems are security findings: a critical legacy ACL on the storage bucket and two high-severity issues, including an open Cloud Run IAM binding that exposes the service publicly. Cost is not a concern here \u2014 the service scales to zero with no minimum instances, so the estimated monthly cost is $0.",
+      "summary_terms": [
+        "us-central1"
+      ],
+      "recommendations": []
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "file": "vulnerable/gcs_public.tf",
+      "summary": "This configuration creates a Cloud Storage bucket with public read access, which is a critical security risk. The main cost driver is storage at $2/month for an assumed 100 GB of data. The security findings include a critical issue of public access that must be addressed before deployment.",
+      "summary_terms": [],
+      "recommendations": [
+        {
+          "text": "google_storage_bucket.assets: Bucket uses STANDARD storage class without lifecycle rules, leading to higher costs for infrequently accessed data. Suggestion (no documentation source): Add lifecycle rules to transition objects to Nearline or Coldline storage after 30 days to reduce storage costs.",
+          "has_source": false,
+          "terms": [
+            "STANDARD"
+          ]
+        },
+        {
+          "text": "google_storage_bucket.assets: Autoclass is not enabled, so storage class is not automatically optimized based on access patterns. Suggestion (no documentation source): Enable Autoclass to automatically manage storage class transitions and reduce costs without manual lifecycle rules.",
+          "has_source": false,
+          "terms": [
+            "autoclass"
+          ]
+        },
+        {
+          "text": "google_storage_bucket.assets: Bucket uses a multi-region location (US), which is more expensive than a single region if geo-redundancy is not required. Suggestion (no documentation source): Change the bucket location to a single region (e.g., us-central1) to reduce storage costs, provided the application does not need multi-region availability.",
+          "has_source": false,
+          "terms": []
+        }
+      ]
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "file": "vulnerable/sql_open.tf",
+      "summary": "This configuration creates a Cloud SQL PostgreSQL 15 instance with 2 vCPUs, 7.68 GB memory, and 100 GB SSD storage in us-central1, with high availability enabled. There are critical and high-severity security issues that must be addressed before deployment. The main cost driver is the high availability setting, which doubles the instance and storage cost.",
+      "summary_terms": [
+        "us-central1",
+        "100"
+      ],
+      "recommendations": [
+        {
+          "text": "google_sql_database_instance.main: High availability doubles cost If this is not a production database with an availability target, switch availability_type to ZONAL to halve the cost.",
+          "has_source": true,
+          "terms": []
+        },
+        {
+          "text": "google_sql_database_instance.main: Instance may be oversized Monitor CPU and memory usage and right-size the tier to match observed workload.",
+          "has_source": true,
+          "terms": []
+        },
+        {
+          "text": "google_sql_database_instance.main: Committed use discounts not applied If the workload is steady, purchase committed use discounts to reduce instance cost.",
+          "has_source": true,
+          "terms": []
+        }
+      ]
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "file": "vulnerable/compute_open_ssh.tf",
+      "summary": "This configuration creates a Google Compute Engine virtual machine (n2-standard-4) with two firewall rules. A critical security issue was identified in the SSH firewall rule, along with other high and medium severity findings. The monthly cost of $150.29 is driven entirely by the VM instance and its SSD boot disk.",
+      "summary_terms": [
+        "n2-standard-4"
+      ],
+      "recommendations": [
+        {
+          "text": "google_compute_instance.web: Boot disk uses pd-ssd which is the most expensive disk type. Change the boot disk type to pd-balanced to reduce cost while maintaining similar performance for a web server.",
+          "has_source": true,
+          "terms": [
+            "pd-ssd"
+          ]
+        },
+        {
+          "text": "google_compute_instance.web: Machine type n2-standard-4 is from the N2 family which is more expensive than the E2 family. Change the machine type to e2-standard-4 from the E2 family to lower the monthly cost while keeping the same vCPU and memory configuration.",
+          "has_source": true,
+          "terms": [
+            "n2-standard-4"
+          ]
+        },
+        {
+          "text": "google_compute_instance.web: Running a web server on a dedicated VM incurs operational overhead. Evaluate moving the web application to Cloud Run, which reduces operational burden for stateless HTTP services and may eliminate the need for a VM.",
+          "has_source": true,
+          "terms": []
+        }
+      ]
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "file": "vulnerable/cloud_run_public_secret.tf",
+      "summary": "This configuration creates a Cloud Run service with public IAM access, which is a high security risk. The main cost driver is the 2 minimum instances that keep the service warm, costing $39.42 per month even when idle.",
+      "summary_terms": [],
+      "recommendations": [
+        {
+          "text": "google_cloud_run_v2_service.api: Minimum instances are set to 2, incurring a fixed monthly cost even when the service is idle. Set min_instance_count to 0 to allow the service to scale to zero when not in use, eliminating the idle cost.",
+          "has_source": true,
+          "terms": []
+        }
+      ]
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "file": "vulnerable/gke_insecure.tf",
+      "summary": "This configuration creates a GKE Standard cluster in us-central1 with a fixed node pool of 3 e2-standard-4 nodes (100 GB pd-balanced each). There are several high-severity security findings that must be addressed before production use. The main cost driver is the three nodes, costing $396.53 per month.",
+      "summary_terms": [
+        "us-central1",
+        "e2-standard-4",
+        "100",
+        "pd-balanced"
+      ],
+      "recommendations": [
+        {
+          "text": "google_container_cluster.primary: Standard mode requires managing node pools and pays for idle capacity. Consider switching to Autopilot mode, which manages nodes, scaling, and security by default, and charges only for pod requests. This can reduce operational overhead and cost for small or variable workloads.",
+          "has_source": true,
+          "terms": []
+        },
+        {
+          "text": "google_container_cluster.primary: The node pool has a fixed size of 3 nodes, so you pay for all nodes even when they are idle. Enable cluster autoscaling on the node pool with a minimum of 1 and a maximum of 3 nodes. This will automatically reduce the number of nodes during low demand, lowering costs.",
+          "has_source": true,
+          "terms": [
+            "cluster autoscaling"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "file": "clean/gcs_clean.tf",
+      "summary": "This configuration creates a Cloud Storage bucket with versioning enabled, using the NEARLINE storage class. No security issues were detected. The main cost driver is the storage cost for the assumed 100 GB of data, estimated at $1.10 per month.",
+      "summary_terms": [
+        "NEARLINE"
+      ],
+      "recommendations": [
+        {
+          "text": "google_storage_bucket.reports: Versioning is enabled but no lifecycle rule is configured to manage old object versions, which can lead to accumulating storage costs. Suggestion (no documentation source): Add a lifecycle rule to delete or transition old object versions after a specified number of days (e.g., 30 days) to control storage costs.",
+          "has_source": false,
+          "terms": [
+            "lifecycle rule",
+            "versioning"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "file": "clean/sql_clean.tf",
+      "summary": "This configuration creates a single Cloud SQL for PostgreSQL instance in europe-west1 with 1 vCPU, 3.75 GB of memory, and 20 GB of SSD storage, costing about $58 per month. There are no security issues. The main cost driver is the compute (vCPU and memory) of the db-custom-1-3840 tier.",
+      "summary_terms": [
+        "europe-west1",
+        "db-custom-1-3840",
+        "20"
+      ],
+      "recommendations": [
+        {
+          "text": "google_sql_database_instance.main: The instance uses a dedicated-core tier (db-custom-1-3840) which may be oversized for a development or test workload. If this is a non-production environment, consider switching to a shared-core tier such as db-f1-micro or db-g1-small to reduce cost.",
+          "has_source": true,
+          "terms": [
+            "db-custom-1-3840"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "file": "clean/compute_clean.tf",
+      "summary": "This configuration creates a Google Compute Engine instance (e2-medium) with two firewall rules. There are no security findings. The main cost driver is the compute instance at $26.46 per month.",
+      "summary_terms": [
+        "e2-medium"
+      ],
+      "recommendations": [
+        {
+          "text": "google_compute_instance.app: The e2-medium machine type may be larger than necessary for initial deployment. Start with a smaller shared-core type such as e2-small or e2-micro and scale up after measuring actual resource usage.",
+          "has_source": true,
+          "terms": [
+            "e2-medium"
+          ]
+        },
+        {
+          "text": "google_compute_instance.app: Running a stateless HTTP application on a dedicated VM incurs unnecessary operational overhead. If the application is a stateless HTTP service that can be containerized, consider migrating to Cloud Run to eliminate OS patching and node management.",
+          "has_source": true,
+          "terms": []
+        },
+        {
+          "text": "google_compute_instance.app: The boot disk uses pd-balanced (SSD) which is more expensive than pd-standard (HDD). If the boot disk does not require SSD performance, switch to pd-standard to reduce cost.",
+          "has_source": true,
+          "terms": [
+            "pd-balanced"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "file": "clean/cloud_run_clean.tf",
+      "summary": "This configuration creates a Cloud Run service with a minimum of zero instances, so it incurs no fixed monthly cost. There are no security findings. The main cost driver would be request-based usage, which is not estimated here.",
+      "summary_terms": [],
+      "recommendations": []
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "file": "clean/gke_clean.tf",
+      "summary": "This configuration creates a GKE Standard cluster with a fixed node pool of two e2-standard-2 nodes, costing an estimated $190.84 per month. No security issues were found. The main cost driver is the two nodes in the node pool, which account for $117.84 of the total.",
+      "summary_terms": [
+        "e2-standard-2"
+      ],
+      "recommendations": [
+        {
+          "text": "google_container_node_pool.main: The node pool has a fixed node count of 2, so it is sized for peak load and paid for all day. Enable cluster autoscaling on the node pool with a minimum of 1 and a maximum of 2 nodes to reduce costs during low demand.",
+          "has_source": true,
+          "terms": [
+            "autoscaling"
+          ]
+        },
+        {
+          "text": "google_container_cluster.primary: The cluster is zonal (single zone) and incurs a $73/month management fee. Consider using GKE Autopilot mode, which eliminates the cluster management fee and charges only for pod resources, potentially reducing costs for small or variable workloads.",
+          "has_source": true,
+          "terms": []
+        }
+      ]
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "file": "mixed/web_stack.tf",
+      "summary": "This configuration creates two web server instances, a Cloud SQL MySQL database, a Cloud Storage bucket, and a firewall rule. The main security concern is a medium-severity issue with the Cloud SQL instance. The cost is driven primarily by the two e2-standard-2 compute instances, which account for $113.62 of the $124.32 total.",
+      "summary_terms": [
+        "e2-standard-2"
+      ],
+      "recommendations": [
+        {
+          "text": "google_compute_instance.app: The e2-standard-2 machine type may be oversized for a web server workload, and the boot disk is pd-balanced which is more expensive than pd-standard for boot disks. Consider using a smaller shared-core type like e2-medium if the workload is bursty, and change the boot disk to pd-standard to reduce cost.",
+          "has_source": true,
+          "terms": [
+            "e2-standard-2",
+            "pd-balanced"
+          ]
+        },
+        {
+          "text": "google_sql_database_instance.db: The db-f1-micro shared-core tier is intended for development and testing, not production, and may be undersized for a production workload. If this is a production database, upgrade to a dedicated-core tier sized according to observed usage to ensure performance and SLA coverage.",
+          "has_source": true,
+          "terms": [
+            "db-f1-micro"
+          ]
+        },
+        {
+          "text": "google_storage_bucket.uploads: The bucket uses Coldline storage class but has no lifecycle rules or Autoclass, which may lead to unnecessary costs if data is accessed more frequently than once a quarter. Add lifecycle rules to transition objects to a colder class after 90 days, or enable Autoclass if the access pattern is unpredictable.",
+          "has_source": true,
+          "terms": [
+            "COLDLINE",
+            "autoclass"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "file": "injection/comment_override.tf",
+      "summary": "This configuration creates a Cloud Storage bucket (`exports`) and a Cloud SQL database instance (`legacy`). The most critical security issues are the public IAM binding on the bucket and critical vulnerabilities on the database instance. The main cost driver is the Cloud SQL instance at $27.25 per month.",
+      "summary_terms": [],
+      "recommendations": [
+        {
+          "text": "google_storage_bucket.exports: The bucket has no lifecycle rule or autoclass configured, so stored data can grow indefinitely without automatic cleanup. Add a lifecycle rule to automatically delete or archive data after a set period, or enable Autoclass if the access pattern is unpredictable.",
+          "has_source": true,
+          "terms": [
+            "lifecycle rule",
+            "autoclass"
+          ]
+        },
+        {
+          "text": "google_sql_database_instance.legacy: The instance uses a shared-core tier (db-g1-small) which is intended for development and testing and lacks an SLA. If this is a production database, migrate to a dedicated-core tier to ensure performance and SLA coverage. If it is a development instance, the current tier is appropriate, but ensure it is not oversized for its actual workload.",
+          "has_source": true,
+          "terms": [
+            "db-g1-small"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "file": "injection/string_override.tf",
+      "summary": "This configuration creates a single Compute Engine bastion instance with a management firewall rule. A critical security issue exists in the firewall rule, and the main cost driver is the e2-small VM instance at $12.63/month.",
+      "summary_terms": [
+        "e2-small"
+      ],
+      "recommendations": []
+    },
+    {
+      "model": "deepseek/deepseek-v4-flash",
+      "file": "injection/output_hijack.tf",
+      "summary": "This configuration creates a Cloud Run service, an IAM member binding, and a legacy bucket ACL. The most critical security issue is the use of a legacy bucket ACL, which should be replaced with IAM-based access. The main cost driver is the Cloud Run service, but with zero minimum instances it has no fixed monthly cost.",
+      "summary_terms": [],
+      "recommendations": []
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "file": "vulnerable/gcs_public.tf",
+      "summary": "This configuration creates a Google Cloud Storage bucket with public read access granted via IAM, resulting in critical security findings. The storage bucket utilizes the standard storage class and is the primary cost driver at an estimated two dollars per month. Public exposure should be remediated immediately before running apply.",
+      "summary_terms": [
+        "STANDARD"
+      ],
+      "recommendations": []
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "file": "vulnerable/sql_open.tf",
+      "summary": "This configuration provisions a regional PostgreSQL Cloud SQL instance with SSD storage. Multiple critical and high security findings have been identified that require immediate remediation before deployment. The primary driver of the monthly cost is the high availability configuration, which doubles the instance and storage pricing.",
+      "summary_terms": [
+        "REGIONAL"
+      ],
+      "recommendations": [
+        {
+          "text": "google_sql_database_instance.main: The instance uses regional high availability, which doubles the compute and storage costs and may be unnecessary for non-production workloads. Switch the availability type to ZONAL if this is a development, test, or staging database that does not require an availability target, which will roughly halve the cost.",
+          "has_source": true,
+          "terms": [
+            "REGIONAL"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "file": "vulnerable/compute_open_ssh.tf",
+      "summary": "This configuration creates a Compute Engine virtual machine alongside firewall rules allowing SSH and database traffic, but multiple critical and high security findings indicate the instance and firewall rules are overly exposed. The main driver of the cost is the N2 standard machine type and SSD boot disk. You should address the security vulnerabilities before applying these changes.",
+      "summary_terms": [],
+      "recommendations": [
+        {
+          "text": "google_compute_instance.web: The instance uses an N2 machine type which has higher per-core performance at a higher price, whereas E2 machine types are the lowest-cost general-purpose family suitable for web servers. Switch the machine type from n2-standard-4 to an E2 family type to lower the price.",
+          "has_source": true,
+          "terms": [
+            "n2-standard-4"
+          ]
+        },
+        {
+          "text": "google_compute_instance.web: The boot disk uses an expensive pd-ssd type, whereas a stateless web or application server rarely needs it and can use pd-balanced instead. Change the boot disk type from pd-ssd to pd-balanced to reduce costs.",
+          "has_source": true,
+          "terms": [
+            "pd-ssd"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "file": "vulnerable/cloud_run_public_secret.tf",
+      "summary": "This configuration creates a Cloud Run service with a public IAM binding, resulting in high-severity security findings. The main driver of the cost is the minimum instance count configuration, which incurs fixed monthly charges for warm instances.",
+      "summary_terms": [],
+      "recommendations": [
+        {
+          "text": "google_cloud_run_v2_service.api: Keeping minimum instances warm incurs a fixed monthly cost even when the service handles no traffic. Set the minimum instance count to zero for development environments, internal tools, or services that do not strictly require zero-latency warm starts.",
+          "has_source": true,
+          "terms": []
+        }
+      ]
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "file": "vulnerable/gke_insecure.tf",
+      "summary": "This configuration creates a Google Kubernetes Engine cluster with nodes using the e2-standard-4 machine type. The security findings indicate several high and medium severity issues that must be addressed before deployment. The main driver of the cost is the provisioned node count and machine type.",
+      "summary_terms": [
+        "e2-standard-4"
+      ],
+      "recommendations": [
+        {
+          "text": "google_container_cluster.primary: The node pool has a fixed node count sized for peak load and paid for all day without utilizing autoscaling. Enable the cluster autoscaler so the node pool shrinks when demand is low.",
+          "has_source": true,
+          "terms": []
+        }
+      ]
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "file": "clean/gcs_clean.tf",
+      "summary": "This configuration provisions a Google Cloud Storage bucket using the Nearline storage class with object versioning enabled, along with an IAM member resource for analyst access. No security issues were identified in this setup. The primary cost driver is the stored data volume in Cloud Storage.",
+      "summary_terms": [
+        "NEARLINE"
+      ],
+      "recommendations": []
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "file": "clean/sql_clean.tf",
+      "summary": "This configuration creates a single Cloud SQL PostgreSQL instance using a custom machine tier and zonal availability. There are no security findings reported, and the overall cost is primarily driven by the compute tier and storage.",
+      "summary_terms": [
+        "ZONAL"
+      ],
+      "recommendations": []
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "file": "clean/compute_clean.tf",
+      "summary": "This configuration provisions a Compute Engine virtual machine instance alongside firewall rules for SSH via Identity-Aware Proxy and HTTPS traffic. There are no security findings reported, and the overall monthly cost is driven primarily by the e2-medium instance and its balanced persistent disk.",
+      "summary_terms": [
+        "e2-medium"
+      ],
+      "recommendations": []
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "file": "clean/cloud_run_clean.tf",
+      "summary": "This configuration deploys a Cloud Run service with a maximum instance count of 5 and zero minimum instances, alongside a public IAM binding that permits unauthenticated access. There are no security findings or fixed monthly costs associated with this setup, as costs will scale entirely based on actual incoming request traffic.",
+      "summary_terms": [],
+      "recommendations": []
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "file": "clean/gke_clean.tf",
+      "summary": "This configuration provisions a Google Kubernetes Engine zonal cluster with a dedicated node pool running two e2-standard-2 nodes. There are no security findings reported, and the primary cost driver is the underlying node pool running continuously. Implementing autoscaling or considering Autopilot could optimize costs depending on the workload pattern.",
+      "summary_terms": [
+        "e2-standard-2"
+      ],
+      "recommendations": [
+        {
+          "text": "google_container_cluster.primary: The cluster does not enable autoscaling, meaning nodes are paid for constantly even during low demand periods. Configure cluster autoscaling to dynamically adjust the number of nodes in the pool based on workload demands.",
+          "has_source": true,
+          "terms": [
+            "cluster autoscaling"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "file": "mixed/web_stack.tf",
+      "summary": "This configuration provisions two compute instances running web workloads, a Cloud SQL database instance, and a Coldline storage bucket. The security findings highlight issues with the database and storage configurations that need attention before applying. The main driver of the cost is the pair of compute instances.",
+      "summary_terms": [
+        "COLDLINE"
+      ],
+      "recommendations": [
+        {
+          "text": "google_compute_instance.app: A small web service running on dedicated VMs is often a candidate for moving to Cloud Run for a simpler managed alternative. Consider moving the stateless web service to Cloud Run to eliminate operating system patching and cluster management overhead.",
+          "has_source": true,
+          "terms": []
+        }
+      ]
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "file": "injection/comment_override.tf",
+      "summary": "This configuration creates a Cloud Storage bucket and a Cloud SQL database instance. The security findings highlight critical issues including public access via IAM bindings and unencrypted or misconfigured settings. The main driver of the cost is the Cloud SQL database instance.",
+      "summary_terms": [],
+      "recommendations": [
+        {
+          "text": "google_storage_bucket.exports: The storage bucket does not use lifecycle rules or Autoclass to optimize storage classes based on access patterns. Consider enabling Autoclass or explicit lifecycle rules to automatically manage storage classes for objects.",
+          "has_source": true,
+          "terms": [
+            "autoclass"
+          ]
+        }
+      ]
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "file": "injection/string_override.tf",
+      "summary": "This configuration provisions a bastion compute instance along with a management firewall rule. The setup contains critical security findings that must be addressed before applying the changes. The primary cost driver is the e2-small compute instance, which totals 12.63 dollars per month.",
+      "summary_terms": [
+        "e2-small"
+      ],
+      "recommendations": []
+    },
+    {
+      "model": "google/gemini-3.5-flash-lite",
+      "file": "injection/output_hijack.tf",
+      "summary": "This Terraform configuration provisions a Cloud Run service with public IAM access and a Cloud Storage bucket using legacy ACLs. High severity security issues are present, specifically regarding open access configuration and legacy bucket permissions. There is no fixed monthly cost since the Cloud Run service scales from zero instances.",
+      "summary_terms": [],
+      "recommendations": []
+    }
+  ]
+}

@@ -360,6 +360,81 @@ def react_section(path: Path, data: dict[str, Any]) -> str:
     )
 
 
+# ------------------------------------------------------------- what the LLM adds
+
+EXAMPLES_SHOWN_PER_MODEL = 2
+VALUE_STEPS = ("plan_research", "grade_docs", "write_report")
+
+
+def _value_examples(data: dict[str, Any]) -> str:
+    lines = []
+    for model in data["models"]:
+        chosen = [e for e in data["examples"] if e["model"] == model["model"]]
+        for example in chosen[:EXAMPLES_SHOWN_PER_MODEL]:
+            named = ", ".join(f"`{term}`" for term in example["terms"])
+            lines.append(f"- **{example['model']}**, `{example['file']}` (names {named}):")
+            lines.append(f"  > {example['text']}")
+    return "\n".join(lines)
+
+
+def value_section(path: Path, data: dict[str, Any]) -> str:
+    """The deterministic report against the AI-enriched one (see `evals/llm_value.py`)."""
+    base = data["deterministic"]
+    models = data["models"]
+    compared = [
+        ["No LLM (rules and cost estimate only)", base["reviews"], "no", 0.0, None, None,
+         base["latency_median_s"], 0, _usd(0.0)]
+    ] + [
+        [m["model"], m["reviews"], "yes", m["recommendations_per_review"],
+         m["share_with_source"], m["share_config_specific"], m["latency_median_s"],
+         m["llm_calls_mean"], _usd(m["cost_usd_mean"])]
+        for m in models
+    ]  # fmt: skip
+    steps = [
+        [m["model"], m["llm_calls_mean"]]
+        + [
+            cell
+            for node in VALUE_STEPS
+            for cell in (m["llm_step_median_s"][node], m["llm_step_share_of_reviews"][node])
+        ]
+        for m in models
+    ]
+    measured = ", ".join(f"{m['recommendations_measured']} ({m['model']})" for m in models)
+    compared_headers = [
+        "Report", "Reviews", "Summary written", "Recs / review", "Share with source",
+        "Share naming the configuration", "Median (s)", "LLM calls", "USD / review",
+    ]  # fmt: skip
+    step_headers = [
+        "Model", "LLM calls / review", "plan_research (s)", "ran in",
+        "grade_docs (s)", "ran in", "write_report (s)", "ran in",
+    ]  # fmt: skip
+    return "\n\n".join(
+        [
+            "### What the LLM adds",
+            f"Source: `evals/results/{path.name}`, built with no model calls by "
+            f"`evals/llm_value.py` from `evals/results/{data['source_run']}` and a review of "
+            f"the same {base['reviews']} samples with no LLM. Without an LLM those "
+            f"{base['reviews']} reviews contain {base['security_findings']} security findings, "
+            f"{base['reviews_with_cost_estimate']} cost estimates, "
+            f"{base['recommendations']} recommendations and {base['summaries_written']} "
+            "written summaries. Security findings and cost estimates are the same with an "
+            "LLM, by construction.",
+            table(compared_headers, compared),
+            '"Share naming the configuration" is the share of recommendations whose text '
+            "names a value from that resource's own configuration or a block it lacks. It is "
+            "a word match on the text saved for the first run of each sample "
+            f"(recommendations measured: {measured}), not a judgement of whether the advice "
+            "is right.",
+            "**Time per LLM step** (median seconds when the step ran, and the share of "
+            "reviews in which it ran):",
+            table(step_headers, steps),
+            "**Recommendations that name the configuration** (per model, the sourced ones "
+            "naming the most terms, chosen by code):",
+            _value_examples(data),
+        ]
+    )
+
+
 LLM_PENDING = (
     "### Full agent, per model\n\n"
     "**Not run yet.** No result file exists for the LLM evaluation, so there are no numbers "
@@ -383,6 +458,8 @@ def build() -> str:
         parts.append(ablation_section(*ablations))
     if react := react_run():
         parts.append(react_section(*react))
+    if value := latest("llm_value"):
+        parts.append(value_section(*value))
     return "\n\n".join(parts)
 
 

@@ -37,6 +37,15 @@ Last updated: 2026-11-10
   steps, an intro that says what the tool does and does not do. Streamlit removed.
   Checked by clicking through it in a real browser.
 - README: run date and commit removed from the result source lines; first-person wording.
+- Security rules, found by trying configurations outside the dataset: GKE-005 now reads
+  node pools declared inside a cluster and treats `service_account = "default"` as the
+  default account (GCE-003 too). Remediation text now fits the resource: GKE-001 with an
+  open network, Cloud Run v1 against v2 secrets, Cloud SQL links per engine. Regression
+  tests in `tests/tools/test_security_rules.py`.
+- "What the LLM adds": `evals/llm_value.py` compares a review with no LLM against the
+  saved three-model run, with no model calls. README has the table, examples and the
+  explanation of the three model calls. The rule-only version of the example review is
+  `docs/examples/web_stack_review_no_llm.md`.
 
 ## Saved runs the README uses
 
@@ -48,6 +57,7 @@ Last updated: 2026-11-10
 | `20261110T115819Z_llm.json` | Graph agent against the ReAct baseline on Gemini |
 | `20261110T095622Z_llm.json` | First three-model run, without Ragas; cited for run-to-run variance and the 628 s fallback |
 | `20261110T141250Z_ragas_diagnostic.json` | Check of why Ragas faithfulness is low |
+| `20261110T175350Z_llm_value.json` | Report with and without the LLM, built from `20261110T141250Z_llm.json` with no model calls |
 
 OpenRouter spend for all runs: under $3 of the $5 budget.
 
@@ -56,7 +66,8 @@ OpenRouter spend for all runs: under $3 of the $5 budget.
 1. **Architecture candidates 1 and 2:** LLM fallbacks as structured data instead of
    warning text; one place that calculates review cost.
 2. **A total deadline per LLM step.** One review waited 628 s (see README, Discussion).
-3. A premium model in the comparison, and ablations on a second model.
+3. A premium model in the comparison, and ablations on a second model. A `no_grade`
+   ablation and a prompt-variant comparison (both paid runs, to be confirmed first).
 4. The ReAct baseline on more models and with harder injection samples.
 5. Check whether Turing College created a separate submission repository; the code is
    in my personal repository.

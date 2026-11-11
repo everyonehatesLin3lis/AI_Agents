@@ -419,3 +419,28 @@ more rules, and live prices for every service.
 about 3 seconds per review against about 20 for the other two, the steadiest between
 runs, every recommendation cited, and still a fraction of a cent. The security result does not depend on the
 choice.
+
+**"What does the LLM actually add?"** Without it the report already has every security
+finding and the cost estimate, in a fifth of a second. The LLM adds two things: a
+summary, and cost, sizing and simplification advice with a documentation link (for
+example "this database is REGIONAL, which doubles the bill; ZONAL is enough for a test
+system"). About six in ten of its recommendations name a value from my configuration;
+the rest is general advice. It costs 3 to 20 seconds and a fraction of a cent. The
+numbers come from `evals/llm_value.py`, which reuses the saved run and calls no model.
+
+**"Why three model calls and not one?"** The first call decides what to look up, and the
+search happens after it, so it cannot be merged with the writing call. Without the
+search there is one call and half the time, but no recommendation has a source (the
+`no_rag` ablation). The third call writes the text the user reads. The second call
+(grading the search results) is the one I have not measured on its own: Ragas context
+precision suggests it helps (1.00 against 0.63 for the baseline without it), but I have
+not run the graph without it. I say that openly; it is under future work.
+
+**"Your eval says the rules are perfect. Are they?"** No. They are perfect on 14 samples
+I wrote next to the rules. Trying other common ways of writing the same resources found
+a missed GKE finding (node pools declared inside the cluster were not checked) and
+remediation text that did not fit the resource (MySQL links on a PostgreSQL instance,
+v2 attribute names on a v1 Cloud Run service, "add this block" when the block was
+there). Each is fixed and has a regression test. What I learned: a rule's advice can
+depend on the resource, so a check may now return its own recommendation, and an eval
+on my own samples only shows that the rules do what I already thought of.

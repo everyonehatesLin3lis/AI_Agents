@@ -335,6 +335,8 @@ uv run python -m evals.run --configs full,react --models google/gemini-3.5-flash
                                     # graph agent against the ReAct baseline
 uv run python -m evals.rejudge evals/results/<file>_llm.json --judge-model <model>
                                     # score a saved run again with another judge
+uv run python -m evals.llm_value    # compare the report with and without the LLM, from
+                                    # the saved run (no model calls, costs nothing)
 uv run python -m evals.report       # rebuild the tables and charts below
 ```
 
@@ -515,6 +517,42 @@ Source: `evals/results/20261110T115819Z_llm.json`. Provider: openrouter. 14 samp
 
 ![Graph agent against the ReAct baseline](docs/img/react.png)
 
+### What the LLM adds
+
+Source: `evals/results/20261110T175350Z_llm_value.json`, built with no model calls by `evals/llm_value.py` from `evals/results/20261110T141250Z_llm.json` and a review of the same 14 samples with no LLM. Without an LLM those 14 reviews contain 35 security findings, 14 cost estimates, 0 recommendations and 0 written summaries. Security findings and cost estimates are the same with an LLM, by construction.
+
+| Report | Reviews | Summary written | Recs / review | Share with source | Share naming the configuration | Median (s) | LLM calls | USD / review |
+|---|---|---|---|---|---|---|---|---|
+| No LLM (rules and cost estimate only) | 14 | no | 0.00 | n/a | n/a | 0.21 | 0 | 0.00000 |
+| xiaomi/mimo-v2.6-flash | 42 | yes | 2.24 | 0.93 | 0.62 | 20.25 | 2.88 | 0.00082 |
+| deepseek/deepseek-v4-flash | 42 | yes | 1.57 | 0.91 | 0.62 | 19.61 | 2.83 | 0.00074 |
+| google/gemini-3.5-flash-lite | 42 | yes | 0.62 | 1.00 | 0.62 | 3.28 | 2.71 | 0.00148 |
+
+"Share naming the configuration" is the share of recommendations whose text names a value from that resource's own configuration or a block it lacks. It is a word match on the text saved for the first run of each sample (recommendations measured: 34 (xiaomi/mimo-v2.6-flash), 24 (deepseek/deepseek-v4-flash), 8 (google/gemini-3.5-flash-lite)), not a judgement of whether the advice is right.
+
+**Time per LLM step** (median seconds when the step ran, and the share of reviews in which it ran):
+
+| Model | LLM calls / review | plan_research (s) | ran in | grade_docs (s) | ran in | write_report (s) | ran in |
+|---|---|---|---|---|---|---|---|
+| xiaomi/mimo-v2.6-flash | 2.88 | 2.21 | 1.00 | 3.45 | 0.88 | 7.74 | 1.00 |
+| deepseek/deepseek-v4-flash | 2.83 | 3.21 | 1.00 | 10.02 | 0.69 | 6.22 | 1.00 |
+| google/gemini-3.5-flash-lite | 2.71 | 0.89 | 1.00 | 0.90 | 0.62 | 1.19 | 1.00 |
+
+**Recommendations that name the configuration** (per model, the sourced ones naming the most terms, chosen by code):
+
+- **xiaomi/mimo-v2.6-flash**, `clean/gcs_clean.tf` (names `NEARLINE`, `lifecycle rule`, `autoclass`):
+  > google_storage_bucket.reports: The bucket uses a fixed NEARLINE class with no lifecycle rule and no autoclass, so access patterns are not adapted automatically. If the reports access pattern is unknown or mixed, enable Autoclass on the bucket so objects move between classes automatically without needing explicit lifecycle rules; if the pattern is predictable, prefer explicit lifecycle rules instead.
+- **xiaomi/mimo-v2.6-flash**, `mixed/web_stack.tf` (names `COLDLINE`, `lifecycle rule`, `autoclass`):
+  > google_storage_bucket.uploads: All uploads are written straight to COLDLINE with no lifecycle rule and no Autoclass, so frequently read objects incur retrieval fees and a 90-day minimum storage duration charge if they are deleted or rewritten early. Enable Autoclass on the bucket (or use Standard storage for recent uploads with a lifecycle rule that moves them to Coldline after 90 days) so objects only pay the colder-class price once they stop being read.
+- **deepseek/deepseek-v4-flash**, `mixed/web_stack.tf` (names `e2-standard-2`, `pd-balanced`):
+  > google_compute_instance.app: The e2-standard-2 machine type may be oversized for a web server workload, and the boot disk is pd-balanced which is more expensive than pd-standard for boot disks. Consider using a smaller shared-core type like e2-medium if the workload is bursty, and change the boot disk to pd-standard to reduce cost.
+- **deepseek/deepseek-v4-flash**, `mixed/web_stack.tf` (names `COLDLINE`, `autoclass`):
+  > google_storage_bucket.uploads: The bucket uses Coldline storage class but has no lifecycle rules or Autoclass, which may lead to unnecessary costs if data is accessed more frequently than once a quarter. Add lifecycle rules to transition objects to a colder class after 90 days, or enable Autoclass if the access pattern is unpredictable.
+- **google/gemini-3.5-flash-lite**, `vulnerable/sql_open.tf` (names `REGIONAL`):
+  > google_sql_database_instance.main: The instance uses regional high availability, which doubles the compute and storage costs and may be unnecessary for non-production workloads. Switch the availability type to ZONAL if this is a development, test, or staging database that does not require an availability target, which will roughly halve the cost.
+- **google/gemini-3.5-flash-lite**, `vulnerable/compute_open_ssh.tf` (names `n2-standard-4`):
+  > google_compute_instance.web: The instance uses an N2 machine type which has higher per-core performance at a higher price, whereas E2 machine types are the lowest-cost general-purpose family suitable for web servers. Switch the machine type from n2-standard-4 to an E2 family type to lower the price.
+
 <!-- RESULTS:END -->
 
 ## Discussion
@@ -638,6 +676,80 @@ I did not change the metric's definition after seeing the result; the tables sho
 first defined. I did not examine, statement by statement, what remains below 1.00 after
 the check.
 
+**What the LLM adds, and what it does not.** Without an LLM the report is already
+complete on the two things that must be right: the same 35 security findings and the
+same 14 cost estimates, in a fifth of a second (table "What the LLM adds"). The two
+versions of one review are saved side by side:
+[`web_stack_review_no_llm.md`](docs/examples/web_stack_review_no_llm.md) and
+[`web_stack_review.md`](docs/examples/web_stack_review.md). The second was saved earlier
+with live prices and before findings quoted the Terraform fields, so compare the parts
+the LLM writes: the summary paragraph and the "Cost and sizing recommendations"
+section. Those are the whole difference. The rule report tells me that backups are off.
+It cannot tell me that two always-on VMs for a stateless web service might be a Cloud
+Run service, or that a `REGIONAL` database doubles the bill and `ZONAL` would do for a
+test system. That kind of advice needs to read the configuration and the documentation
+together, which is what the model is used for. The price is 3 to 20 seconds and a
+fraction of a cent per review.
+
+How specific is the advice? About six in ten recommendations name a value from the
+resource they are about (0.62 for all three models; 34, 24 and 8 recommendations
+measured). The rest is correct-sounding but general ("monitor CPU and memory usage and
+right-size the tier"). Naming the configuration is not the same as being right. One
+DeepSeek recommendation in the examples above tells a bucket that is already `COLDLINE`
+to "transition objects to a colder class after 90 days": it names the configuration and
+still misreads it. DeepEval faithfulness (0.95 to 0.99) did not flag that, so I would
+not let any of this text carry a decision without the source link next to it. Gemini
+writes the least advice (a recommendation in 55% of reviews) and MiMo the most (86%):
+the fast, cheap default buys less of what the LLM is there for.
+
+**Why the pipeline makes three model calls.** A typical review calls the model three
+times (2.7 to 2.9 on average): `plan_research`, `grade_docs`, `write_report`.
+
+- *`plan_research` cannot be merged into `write_report`*, because the documentation
+  search happens between them. The model has to say what to look up before it can be
+  given what was found. Skipping the search is the `no_rag` ablation: one call instead
+  of three, half the time (10.8 s against 22.4 s) and less than half the cost, and
+  about the same number of recommendations (2.07 against 2.12), but not one of them has
+  a source (0.00 against 0.99). Recommendations a reader cannot check are the thing this
+  project is trying not to produce, so the first call stays.
+- *`write_report` is the only call whose text reaches the user*, so it cannot go.
+- *`grade_docs` is the one I cannot fully justify with a number.* It filters the search
+  results before the writer sees them, and its count of relevant documents is what the
+  code uses to decide whether to search again. The indirect evidence is Ragas context
+  precision: 1.00 for the graph against 0.63 for the ReAct baseline, which passes on
+  every passage it found. But I have not run the graph without the grading step, so I
+  do not know how much worse the report would be. It is not cheap: it is the slowest
+  step for DeepSeek (10.0 s median, against 6.2 s for writing) and a quarter to a
+  third of the LLM time for the other two. It ran in 62 to 88% of reviews; in the rest the plan
+  had no queries or the search returned nothing new. A `no_grade` ablation is the
+  missing measurement and is listed under future work.
+
+The comparison across variants is in the tables above: three models on quality, speed
+and cost ("Full agent, per model"), and the pipeline with and without search and the
+rewrite loop ("Ablations"). I have not compared prompt variants: the prompts were
+written once and every saved run uses the same ones.
+
+**The rules missed things once I tried configurations outside the dataset.** The
+deterministic numbers are 1.00 on samples I wrote next to the rules. Checking the rules
+by hand against other common ways of writing the same resources found one missed
+finding (missed in two ways) and three pieces of wrong advice, all fixed and each now a regression test in
+`tests/tools/test_security_rules.py`:
+
+- *Missed GKE finding.* GKE-005 (nodes run as the default service account with full API
+  access) read only the cluster's own `node_config`. Node pools declared inside the
+  cluster with a `node_pool` block were not checked, and `service_account = "default"`
+  was taken for a custom account. Both are now found, and the finding names the pool.
+- *Wrong remediation text.* An open control plane (`0.0.0.0/0` in the authorized
+  networks) was told to "add master_authorized_networks_config", which it already had.
+  A `google_cloud_run_service` (v1) with a plain-text secret was told to use
+  `value_source`, which exists only in the v2 resource. Every Cloud SQL finding linked
+  to the MySQL documentation, also for PostgreSQL and SQL Server instances. A rule can
+  now give advice that depends on the resource, and Cloud SQL links follow the engine.
+
+None of the 14 samples exercised these cases, so the saved eval numbers are unchanged
+and could not have shown them. That is the in-sample caveat from the first paragraph
+of this discussion, made concrete.
+
 **Which model to use.** On these numbers, `gemini-3.5-flash-lite` suits the
 interactive uses (UI and MCP tool) because it is about six times faster, the steadiest
 between runs, and every recommendation it wrote had a source, at a cost that is still a
@@ -711,6 +823,9 @@ would do.
   minutes.
 - Add a premium model to the comparison, and repeat the ablations on more than one
   model with an independent judge.
+- A `no_grade` ablation (the graph without the `grade_docs` step), to measure what the
+  second of the three model calls adds, and a comparison of prompt variants for
+  `write_report`.
 - Harder retrieval queries (services or questions the store covers poorly) to test
   whether the rewrite loop earns its place.
 - Run the ReAct baseline on more models and with harder injection samples, to find
