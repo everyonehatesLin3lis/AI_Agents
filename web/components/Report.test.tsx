@@ -91,3 +91,17 @@ describe("Report with a budget finding", () => {
     expect(within(suggestions).queryByText(/above the project budget/i)).not.toBeInTheDocument();
   });
 });
+
+describe("Report field trace", () => {
+  it("shows which Terraform field triggered a rule finding, and nothing for AI suggestions", () => {
+    render(<Report report={REPORT} />);
+
+    const security = screen.getByRole("region", { name: /security findings/i });
+    const suggestions = screen.getByRole("region", { name: /suggestions/i });
+    expect(within(security).getByText(/in your terraform/i)).toBeInTheDocument();
+    expect(
+      within(security).getByText('settings.ip_configuration.authorized_networks.value = "0.0.0.0/0"'),
+    ).toBeInTheDocument();
+    expect(within(suggestions).queryByText(/in your terraform/i)).not.toBeInTheDocument();
+  });
+});

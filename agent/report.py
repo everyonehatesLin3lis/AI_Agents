@@ -220,6 +220,9 @@ def _findings_section(title: str, findings: list[Finding], *, security: bool) ->
         low = " (deprioritized by your earlier feedback)" if finding.deprioritized else ""
         lines.append(f"### [{finding.severity.value.upper()}] {tag}`{finding.resource}`{low}")
         lines.append(f"- **Issue:** {finding.issue}")
+        if finding.terraform_fields:
+            shown = "; ".join(f"`{field}`" for field in finding.terraform_fields)
+            lines.append(f"- **In your Terraform:** {shown}")
         lines.append(f"- **Recommendation:** {finding.recommendation}")
         if finding.estimated_savings:
             lines.append(f"- **Estimated savings:** ${finding.estimated_savings:,.2f}/month")

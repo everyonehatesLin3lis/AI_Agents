@@ -123,6 +123,16 @@ def test_markdown_report_shows_findings_sources_and_cost(make_deps, make_llm):
     assert "Prices may be outdated" in text
 
 
+def test_markdown_report_shows_which_terraform_field_triggered_a_rule(make_deps, make_llm):
+    text = render_markdown(run_review(SQL_OPEN.terraform, deps=make_deps(happy_llm(make_llm))))
+
+    assert (
+        "- **In your Terraform:** `settings.ip_configuration.authorized_networks.value = "
+        '"0.0.0.0/0"`' in text
+    )
+    assert "- **In your Terraform:** `deletion_protection = false`" in text
+
+
 def test_unsupported_resources_are_listed_not_reviewed(make_deps, make_llm):
     sample = SAMPLES["mixed/web_stack.tf"]
     llm = make_llm({"PLAN_RESEARCH": {"queries": []}, "WRITE_REPORT": {"summary": "A web stack."}})

@@ -18,6 +18,17 @@ function FindingCard({ finding }: { finding: Finding }) {
       <p>
         <strong>Issue:</strong> {finding.issue}
       </p>
+      {finding.terraform_fields?.length > 0 && (
+        <p>
+          <strong>In your Terraform:</strong>{" "}
+          {finding.terraform_fields.map((field, index) => (
+            <span key={field}>
+              {index > 0 && "; "}
+              <code>{field}</code>
+            </span>
+          ))}
+        </p>
+      )}
       <p>
         <strong>What to do:</strong> {recommendation}
       </p>

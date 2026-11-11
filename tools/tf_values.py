@@ -8,6 +8,7 @@ unknown means for it.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 
@@ -77,3 +78,55 @@ def string_list(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
     return [item for item in value if isinstance(item, str) and not is_reference(item)]
+
+
+# ------------------------------------------------------- showing a field to a reader
+
+MAX_SHOWN_CHARS = 160
+
+
+def _values_at(attributes: dict[str, Any], path: str) -> list[Any]:
+    """Every value found at a dotted path such as `settings.ip_configuration.ipv4_enabled`.
+    A block that repeats (several `authorized_networks`) gives one value per block."""
+    current: list[Any] = [attributes]
+    for key in path.split("."):
+        found: list[Any] = []
+        for item in current:
+            if not isinstance(item, dict) or key not in item:
+                continue
+            value = item[key]
+            if isinstance(value, list) and value and all(isinstance(v, dict) for v in value):
+                found.extend(value)  # nested blocks: keep walking into each of them
+            else:
+                found.append(value)
+        current = found
+    return current
+
+
+def _show(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, list):
+        return "[" + ", ".join(_show(item) for item in value) + "]"
+    if isinstance(value, str):
+        return json.dumps(" ".join(value.split()))  # one line, quoted
+    return str(value)
+
+
+def describe_fields(attributes: dict[str, Any], paths: tuple[str, ...]) -> list[str]:
+    """What the Terraform says at each path, as text for a report: `path = value`.
+
+    Paths that are absent are left out when another one is present. When none is present
+    the answer is that they are not set, which is often the problem itself.
+    """
+    described: list[str] = []
+    for path in paths:
+        values = _values_at(attributes, path)
+        if not values:
+            continue
+        if all(isinstance(value, dict) for value in values):
+            described.append(f"{path} is set")  # a block: its presence is the fact
+            continue
+        shown = _show(values[0] if len(values) == 1 else values)
+        described.append(f"{path} = {shown}"[:MAX_SHOWN_CHARS])
+    return described or [f"{path} is not set" for path in paths]

@@ -20,6 +20,7 @@ export const REPORT: ReviewReport = {
       rule_id: "SQL-001",
       category: "security",
       deprioritized: false,
+      terraform_fields: ['settings.ip_configuration.authorized_networks.value = "0.0.0.0/0"'],
     },
     {
       severity: "medium",
@@ -31,6 +32,7 @@ export const REPORT: ReviewReport = {
       rule_id: null,
       category: "simplification",
       deprioritized: false,
+      terraform_fields: [],
     },
     {
       severity: "low",
@@ -42,6 +44,7 @@ export const REPORT: ReviewReport = {
       rule_id: null,
       category: "cost",
       deprioritized: true,
+      terraform_fields: [],
     },
   ],
   cost_estimate: {

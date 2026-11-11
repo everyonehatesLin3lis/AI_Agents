@@ -80,6 +80,9 @@ class Finding(BaseModel):
     rule_id: str | None = None
     category: Category = Category.SECURITY
     deprioritized: bool = False
+    # For a rule finding: what the Terraform says in the attributes the rule read,
+    # e.g. `deletion_protection = false`. Empty for findings written by the LLM.
+    terraform_fields: list[str] = Field(default_factory=list)
 
     @property
     def feedback_key(self) -> str:

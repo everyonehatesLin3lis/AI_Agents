@@ -23,6 +23,8 @@ export type Finding = {
   rule_id: string | null;
   category: Category;
   deprioritized: boolean;
+  // For a rule finding: what the file says in the attributes the rule read.
+  terraform_fields: string[];
 };
 
 export type CostLine = {

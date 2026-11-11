@@ -4,6 +4,11 @@ Each rule is a small function that looks at one resource and returns a short des
 of the problem, or None when the resource is fine. Rules live in the `RULES` registry,
 so the list in the README is generated from the same data the agent runs.
 
+A rule has one default recommendation. When the right advice depends on the resource
+(which branch of the check fired, the Cloud Run resource version, the Cloud SQL engine),
+the check returns a `Problem` that carries the advice for that case, so a finding never
+tells the reader to do something that does not apply to their resource.
+
 These findings are the part of the report that must never change because of user
 feedback, project memory or anything written inside the Terraform file. Nothing in this
 module reads comments, calls an LLM or looks at feedback.
@@ -17,7 +22,15 @@ from dataclasses import dataclass
 from typing import Any
 
 from tools.models import Category, Finding, Resource, Severity
-from tools.tf_values import all_blocks, as_bool, dig, first_block, literal_str, string_list
+from tools.tf_values import (
+    all_blocks,
+    as_bool,
+    describe_fields,
+    dig,
+    first_block,
+    literal_str,
+    string_list,
+)
 
 PUBLIC_MEMBERS = {"allUsers", "allAuthenticatedUsers"}
 ANY_ADDRESS = {"0.0.0.0/0", "::/0"}
@@ -33,7 +46,18 @@ DATABASE_PORTS = {
 SECRET_NAME = re.compile(r"(PASSWORD|PASSWD|SECRET|TOKEN|API_?KEY|PRIVATE_?KEY|CREDENTIAL)", re.I)
 DEFAULT_COMPUTE_SA = "-compute@developer.gserviceaccount.com"
 
-Check = Callable[[Resource], str | None]
+DEFAULT_SA_ALIAS = "default"  # how the API and Terraform name the default account
+
+
+@dataclass(frozen=True)
+class Problem:
+    """What a check found, when the rule's default advice does not fit this resource."""
+
+    issue: str
+    recommendation: str | None = None  # None = use the rule's recommendation
+
+
+Check = Callable[[Resource], "str | Problem | None"]
 
 
 @dataclass(frozen=True)
@@ -45,6 +69,10 @@ class Rule:
     recommendation: str
     source_url: str
     check: Check
+    # The Terraform attributes the check reads. A finding quotes what the file says
+    # there, so a reader can verify it without knowing the rule. Never list an
+    # attribute that can hold a secret (an env `value`, a password).
+    fields: tuple[str, ...] = ()
 
 
 # --------------------------------------------------------------------------- helpers
@@ -94,9 +122,14 @@ def _open_ports(resource: Resource, wanted: dict[int, str]) -> list[str]:
 def _uses_default_sa_with_full_scope(service_account: dict[str, Any], scopes: Any) -> bool:
     has_full_scope = any(s.endswith("cloud-platform") for s in string_list(scopes))
     email = service_account.get("email", service_account.get("service_account"))
-    if isinstance(email, str) and DEFAULT_COMPUTE_SA not in email:
+    if isinstance(email, str) and not _is_default_sa(email):
         return False  # a custom service account (literal or reference) is set
     return has_full_scope
+
+
+def _is_default_sa(email: str) -> bool:
+    """The default account can be left out, written as "default" or given in full."""
+    return email == DEFAULT_SA_ALIAS or DEFAULT_COMPUTE_SA in email
 
 
 # ------------------------------------------------------------------- Cloud Storage
@@ -230,7 +263,7 @@ def _run_containers(resource: Resource) -> list[dict[str, Any]]:
     return containers
 
 
-def _run_plaintext_secret(resource: Resource) -> str | None:
+def _run_plaintext_secret(resource: Resource) -> Problem | None:
     names: list[str] = []
     for container in _run_containers(resource):
         for env in all_blocks(container, "env"):
@@ -239,18 +272,33 @@ def _run_plaintext_secret(resource: Resource) -> str | None:
                 names.append(name)
     if not names:
         return None
-    return f"Secret-looking values are set as plain environment variables: {', '.join(names)}."
+    # The two resource versions name the same block differently.
+    v2 = resource.type == "google_cloud_run_v2_service"
+    reference = (
+        "value_source { secret_key_ref { secret, version } }"
+        if v2
+        else "value_from { secret_key_ref { name, key } }"
+    )
+    return Problem(
+        f"Secret-looking values are set as plain environment variables: {', '.join(names)}.",
+        f"Store the value in Secret Manager and reference it in the env block with {reference}.",
+    )
 
 
 # ----------------------------------------------------------------------------- GKE
 
 
-def _gke_control_plane_open(resource: Resource) -> str | None:
+def _gke_control_plane_open(resource: Resource) -> str | Problem | None:
     attributes = resource.attributes
     networks = first_block(attributes, "master_authorized_networks_config")
     for cidr in all_blocks(networks, "cidr_blocks"):
         if literal_str(cidr.get("cidr_block")) in ANY_ADDRESS:
-            return "Control plane authorized networks include 0.0.0.0/0."
+            # The block exists already, so "add it" would be the wrong advice here.
+            return Problem(
+                "Control plane authorized networks include 0.0.0.0/0.",
+                "Remove 0.0.0.0/0 from master_authorized_networks_config and list only "
+                "your own CIDR ranges, or enable the private endpoint.",
+            )
     private = first_block(attributes, "private_cluster_config")
     if "master_authorized_networks_config" in attributes:
         return None
@@ -281,19 +329,38 @@ def _gke_no_workload_identity(resource: Resource) -> str | None:
     return "Workload Identity is not configured."
 
 
+def _node_configs(resource: Resource) -> list[tuple[str, dict[str, Any]]]:
+    """Every node_config in the resource, with a name for where it is.
+
+    A cluster can describe its nodes in its own `node_config` and also in any number of
+    `node_pool` blocks declared inside it. All of them create nodes.
+    """
+    attributes = resource.attributes
+    configs = [("Nodes", first_block(attributes, "node_config"))]
+    for index, pool in enumerate(all_blocks(attributes, "node_pool")):
+        name = literal_str(pool.get("name")) or f"#{index + 1}"
+        configs.append((f"Nodes in node pool '{name}'", first_block(pool, "node_config")))
+    return [(where, config) for where, config in configs if config]
+
+
 def _gke_nodes_default_sa(resource: Resource) -> str | None:
-    node_config = first_block(resource.attributes, "node_config")
-    if not node_config:
+    affected = [
+        where
+        for where, config in _node_configs(resource)
+        if _uses_default_sa_with_full_scope(config, config.get("oauth_scopes"))
+    ]
+    if not affected:
         return None
-    if _uses_default_sa_with_full_scope(node_config, node_config.get("oauth_scopes")):
-        return "Nodes run as the default service account with the cloud-platform scope."
-    return None
+    where = "; ".join(affected)
+    return f"{where} run as the default service account with the cloud-platform scope."
 
 
 # ------------------------------------------------------------------------ registry
 
 _GCS = "https://cloud.google.com/storage/docs"
-_SQL = "https://cloud.google.com/sql/docs/mysql"
+_SQL_DOCS = "https://cloud.google.com/sql/docs"
+_SQL = f"{_SQL_DOCS}/mysql"  # the default; a finding links to its own engine's pages
+_SQL_ENGINES = {"MYSQL": "mysql", "POSTGRES": "postgres", "SQLSERVER": "sqlserver"}
 _GKE = "https://cloud.google.com/kubernetes-engine/docs"
 _RUN_IAM = (
     "google_cloud_run_service_iam_member",
@@ -319,6 +386,7 @@ RULES: tuple[Rule, ...] = (
         "Use signed URLs or a load balancer with Cloud CDN for public content.",
         f"{_GCS}/public-access-prevention",
         _gcs_public_iam,
+        fields=("members", "member", "entity", "role_entity"),
     ),
     Rule(
         "GCS-002",
@@ -328,6 +396,7 @@ RULES: tuple[Rule, ...] = (
         "Set uniform_bucket_level_access = true so access is controlled by IAM only.",
         f"{_GCS}/uniform-bucket-level-access",
         _gcs_no_uniform_access,
+        fields=("uniform_bucket_level_access",),
     ),
     Rule(
         "GCS-003",
@@ -337,6 +406,7 @@ RULES: tuple[Rule, ...] = (
         'Set public_access_prevention = "enforced" unless the bucket must be public.',
         f"{_GCS}/public-access-prevention",
         _gcs_no_public_access_prevention,
+        fields=("public_access_prevention",),
     ),
     Rule(
         "GCS-004",
@@ -346,6 +416,7 @@ RULES: tuple[Rule, ...] = (
         "Enable versioning (with a lifecycle rule to expire old versions) for important data.",
         f"{_GCS}/object-versioning",
         _gcs_no_versioning,
+        fields=("versioning.enabled",),
     ),
     Rule(
         "SQL-001",
@@ -355,6 +426,7 @@ RULES: tuple[Rule, ...] = (
         "Remove 0.0.0.0/0 from authorized_networks. Use private IP or the Cloud SQL Auth Proxy.",
         f"{_SQL}/authorize-networks",
         _sql_open_to_world,
+        fields=("settings.ip_configuration.authorized_networks.value",),
     ),
     Rule(
         "SQL-002",
@@ -364,6 +436,7 @@ RULES: tuple[Rule, ...] = (
         "Set ipv4_enabled = false and connect over private IP (private_network).",
         f"{_SQL}/private-ip",
         _sql_public_ip,
+        fields=("settings.ip_configuration.ipv4_enabled",),
     ),
     Rule(
         "SQL-003",
@@ -373,6 +446,7 @@ RULES: tuple[Rule, ...] = (
         'Set ssl_mode = "ENCRYPTED_ONLY" (or stricter) in ip_configuration.',
         f"{_SQL}/configure-ssl-instance",
         _sql_no_ssl,
+        fields=("settings.ip_configuration.ssl_mode", "settings.ip_configuration.require_ssl"),
     ),
     Rule(
         "SQL-004",
@@ -382,6 +456,7 @@ RULES: tuple[Rule, ...] = (
         "Enable backup_configuration (and point-in-time recovery for production data).",
         f"{_SQL}/backup-recovery/backups",
         _sql_no_backups,
+        fields=("settings.backup_configuration.enabled",),
     ),
     Rule(
         "SQL-005",
@@ -391,6 +466,7 @@ RULES: tuple[Rule, ...] = (
         "Set deletion_protection = true for any instance that holds real data.",
         f"{_SQL}/deletion-protection",
         _sql_no_deletion_protection,
+        fields=("deletion_protection",),
     ),
     Rule(
         "GCE-001",
@@ -401,6 +477,7 @@ RULES: tuple[Rule, ...] = (
         "(35.235.240.0/20) instead of exposing SSH/RDP.",
         "https://cloud.google.com/iap/docs/using-tcp-forwarding",
         _fw_admin_ports_open,
+        fields=("source_ranges", "allow.protocol", "allow.ports"),
     ),
     Rule(
         "GCE-002",
@@ -410,6 +487,7 @@ RULES: tuple[Rule, ...] = (
         "Restrict source_ranges to the application subnet or use target tags/service accounts.",
         "https://cloud.google.com/firewall/docs/firewalls",
         _fw_database_ports_open,
+        fields=("source_ranges", "allow.protocol", "allow.ports"),
     ),
     Rule(
         "GCE-003",
@@ -419,6 +497,7 @@ RULES: tuple[Rule, ...] = (
         "Create a dedicated service account with only the roles the VM needs.",
         "https://cloud.google.com/compute/docs/access/service-accounts",
         _vm_default_sa_full_scope,
+        fields=("service_account.email", "service_account.scopes"),
     ),
     Rule(
         "GCE-004",
@@ -429,6 +508,7 @@ RULES: tuple[Rule, ...] = (
         "balancer for inbound traffic.",
         "https://cloud.google.com/compute/docs/ip-addresses",
         _vm_public_ip,
+        fields=("network_interface.access_config",),
     ),
     Rule(
         "RUN-001",
@@ -439,15 +519,17 @@ RULES: tuple[Rule, ...] = (
         "roles/run.invoker to specific identities.",
         "https://cloud.google.com/run/docs/authenticating/public",
         _run_public_invoker,
+        fields=("role", "members", "member"),
     ),
     Rule(
         "RUN-002",
         Severity.HIGH,
         _RUN_SERVICES,
         "Secrets in plain environment variables",
-        "Store the value in Secret Manager and reference it with value_source/secret_key_ref.",
+        "Store the value in Secret Manager and reference it with a secret_key_ref.",
         "https://cloud.google.com/run/docs/configuring/services/secrets",
         _run_plaintext_secret,
+        fields=("template.containers.env.name", "template.spec.containers.env.name"),
     ),
     Rule(
         "GKE-001",
@@ -458,6 +540,10 @@ RULES: tuple[Rule, ...] = (
         "private endpoint.",
         f"{_GKE}/concepts/network-isolation",
         _gke_control_plane_open,
+        fields=(
+            "master_authorized_networks_config.cidr_blocks.cidr_block",
+            "private_cluster_config.enable_private_endpoint",
+        ),
     ),
     Rule(
         "GKE-002",
@@ -467,6 +553,7 @@ RULES: tuple[Rule, ...] = (
         "Set private_cluster_config.enable_private_nodes = true and use Cloud NAT for egress.",
         f"{_GKE}/concepts/network-isolation",
         _gke_public_nodes,
+        fields=("private_cluster_config.enable_private_nodes",),
     ),
     Rule(
         "GKE-003",
@@ -476,6 +563,7 @@ RULES: tuple[Rule, ...] = (
         "Set enable_legacy_abac = false and use Kubernetes RBAC.",
         f"{_GKE}/how-to/hardening-your-cluster",
         _gke_legacy_abac,
+        fields=("enable_legacy_abac",),
     ),
     Rule(
         "GKE-004",
@@ -486,6 +574,7 @@ RULES: tuple[Rule, ...] = (
         "node service account.",
         f"{_GKE}/concepts/workload-identity",
         _gke_no_workload_identity,
+        fields=("workload_identity_config", "enable_autopilot"),
     ),
     Rule(
         "GKE-005",
@@ -495,6 +584,12 @@ RULES: tuple[Rule, ...] = (
         "Create a minimal node service account and set it in node_config.service_account.",
         f"{_GKE}/how-to/hardening-your-cluster",
         _gke_nodes_default_sa,
+        fields=(
+            "node_config.service_account",
+            "node_config.oauth_scopes",
+            "node_pool.node_config.service_account",
+            "node_pool.node_config.oauth_scopes",
+        ),
     ),
 )
 
@@ -506,19 +601,37 @@ def check_security(resources: list[Resource]) -> list[Finding]:
         for rule in RULES:
             if resource.type not in rule.resource_types:
                 continue
-            issue = rule.check(resource)
-            if issue:
-                findings.append(_to_finding(rule, resource, issue))
+            problem = rule.check(resource)
+            if problem:
+                findings.append(_to_finding(rule, resource, problem))
     return findings
 
 
-def _to_finding(rule: Rule, resource: Resource, issue: str) -> Finding:
+def _source_url(rule: Rule, resource: Resource) -> str:
+    """Cloud SQL has one documentation tree per engine, with the same page names.
+
+    A PostgreSQL instance gets the PostgreSQL page, not the MySQL one. The engine comes
+    from `database_version` (`POSTGRES_15`); MySQL is the provider's default.
+    """
+    if resource.type != "google_sql_database_instance":
+        return rule.source_url
+    version = (literal_str(resource.attributes.get("database_version")) or "").upper()
+    engine = next(
+        (docs for prefix, docs in _SQL_ENGINES.items() if version.startswith(prefix)), "mysql"
+    )
+    return rule.source_url.replace(f"{_SQL}/", f"{_SQL_DOCS}/{engine}/")
+
+
+def _to_finding(rule: Rule, resource: Resource, problem: str | Problem) -> Finding:
+    if isinstance(problem, str):
+        problem = Problem(problem)
     return Finding(
         severity=rule.severity,
         resource=resource.address,
-        issue=f"{rule.title}. {issue}",
-        recommendation=rule.recommendation,
-        source_url=rule.source_url,
+        issue=f"{rule.title}. {problem.issue}",
+        recommendation=problem.recommendation or rule.recommendation,
+        source_url=_source_url(rule, resource),
         rule_id=rule.id,
         category=Category.SECURITY,
+        terraform_fields=describe_fields(resource.attributes, rule.fields),
     )
